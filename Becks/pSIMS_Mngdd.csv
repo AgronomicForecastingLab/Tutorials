@@ -1,0 +1,53 @@
+"YieldM","Yieldsd","Id","PLANTED","HARVESTED","POPULATION","PC","ROWWIDTH","Soil","TILLAGE","HERBICIDE","FUNGICIDE","INSECTICIDE","Latitude","Longitude","Family","State","pYear"
+244.3,NA,"30148",2014-04-23,2014-09-10,36000," Corn",30," Silt Loam"," V-Rip / Field Cultivation"," 3 qt. Degree Xtra, 1 qt. Atrazine",NA," None",38.27,-87.63,"Corn","IN",2014
+226,NA,"30218",2014-05-07,2014-10-23,36500," Corn",30," Clay Loam"," Chisel / Field Cultivation"," Roundup",NA," None",40.98,-86.87,"Corn","IN",2014
+216.5,NA,"31630",2015-05-13,2015-09-28,34000," Soybeans",30," Clay Loam"," No-Till"," 1 lb Atrazine, 32oz Roundup PowerMAX",NA," None",40.34,-84.43,"Corn","OH",2015
+188.72,9.78,"31919",2015-05-07,2015-10-02,32000," Soybeans",30," Silt Loam"," Field Cultivation"," Corvus",NA," None",39.08,-89.59,"Corn","IL",2015
+244,NA,"32140",2015-05-01,2015-09-22,35000," Soybeans",30," Silty Clay Loam"," Conv.-Till"," Corvus, Roundup PowerMAX",NA," None",40.92,-89.89,"Corn","IL",2015
+179.79,16.35,"32143",2015-04-24,2015-09-23,34000," Soybeans",30," Clay Loam"," Vertical-Till"," Atrazine, Corvus",NA," None",39.69,-91.55,"Corn","MO",2015
+257.1,6.83,"43071",2016-04-18,2016-11-02,35500," Corn",30," Loam"," Conv.-Till"," Balance Flexx"," Stratego",NA,42.68,-94.87,"Corn","IA",2016
+230.57,9.65,"43170",2016-04-25,2016-10-10,34000," Corn",30," Silt Loam"," Chisel"," 3 qts Acuron",NA,NA,41.15,-91.64,"Corn","IA",2016
+249.33,11.03,"43185",2016-04-26,2016-09-29,34000," Corn",30," Silty Clay Loam"," Chisel"," Roundup",NA,NA,41.33,-90.37,"Corn","IL",2016
+224.9,11.62,"43305",2016-05-06,2016-10-17,34000," Alfalfa",30," Silt Loam"," Chisel / Field Cultivation"," 5.6 oz Corvus, .5 oz Armezon",NA,NA,41.54,-91.4,"Corn","IA",2016
+216.26,11.18,"43374",2016-05-06,2016-09-22,32000," Soybeans",30," Silty Clay Loam"," Chisel / Field Cultivation"," Break Free, Roundup WeatherMAX",NA,NA,39.7,-89.48,"Corn","IL",2016
+191.2,NA,"43636",2016-05-20,2016-10-11,36500," Soybeans",20," Clay Loam"," Field Cultivation"," 3 pints Keystone, 3 pints SureStart",NA,NA,40.34,-84.43,"Corn","OH",2016
+155.96,11.27,"43874",2016-05-09,2016-10-01,28000," Soybeans",30," Silty Clay Loam"," Conv.-Till"," None",NA,NA,37.56,-89.62,"Corn","MO",2016
+261.69,9.46,"44007",2016-04-18,2016-09-27,34000," Soybeans",30," Silty Clay Loam"," Strip-Till"," Lexar, Roundup",NA,NA,40.54,-89.56,"Corn","IL",2016
+223.65,8.49,"44046",2016-04-17,2016-10-03,34000," Soybeans",30," Silt Loam"," Field Cultivation"," Lexar",NA,NA,39.21,-89.54,"Corn","IL",2016
+217,NA,"68667",2017-05-17,2017-09-29,36000," Corn",20," Clay Loam"," Field Cultivation"," 1 lb Atrazine, 32oz Generic Glyphosate",NA,NA,40.34,-84.43,"Corn","OH",2017
+225.42,11.07,"69416",2017-06-08,2017-10-26,32000," Soybeans",30," Silty Clay Loam"," Field Cultivation"," Break Free, Realm Q, Abundt Pre",NA,NA,39.7,-89.48,"Corn","IL",2017
+186.42,9.39,"79258",2018-04-26,2018-10-01,34000," Soybeans",30," Silt Loam"," Chisel / Field Cultivation"," Halex® GT",NA,NA,39.67,-91.21,"Corn","IL",2018
+191.84,36.48,"79482",2018-05-08,2018-11-09,33000," Soybeans",30," Silty Clay Loam"," No-Till"," Roundup, Atrazine, 2,4-D",NA,NA,41.46,-95.47,"Corn","IA",2018
+246.02,13.91,"79574",2018-04-30,2018-10-01,35000," Soybeans",30," Silty Clay Loam"," Chisel / Field Cultivation"," Callisto®, Atrazine",NA,NA,40.35,-89.21,"Corn","IL",2018
+262.41,15.99,"79594",2018-05-07,2018-10-03,34000," Soybeans",30," Silt Loam"," Field Cultivation"," Corvus®, Roundup, Callisto®",NA,NA,41.54,-91.4,"Corn","IA",2018
+245.54,10.47,"79866",2018-05-05,2018-09-17,32000," Soybeans",30," Clay Loam"," Field Cultivation"," Halex® GT",NA,NA,39.04,-88.31,"Corn","IL",2018
+184.56,10.87,"79885",2018-05-09,2018-09-17,32500," Corn",30," Loam"," Chisel / Vertical-Till"," None",NA,NA,38.18,-87.92,"Corn","IN",2018
+198.5,NA,"79924",2018-05-12,2018-09-29,29500," Soybeans",30," Clay Loam"," Conv.-Till"," Generic Glyphosate, Atrazine, Callisto®",NA,NA,37.56,-89.62,"Corn","MO",2018
+199.08,9.23,"80265",2018-05-08,2018-10-11,29900," Corn",30," Silt Loam"," Field Cultivation"," Cinch Atz, Laudis®",NA,NA,39.08,-89.59,"Corn","IL",2018
+204.53,16.85,"80629",2018-05-01,2018-10-27,33000," Soybeans",30," Sandy Clay Loam"," Conv.-Till"," Roundup",NA,NA,42.21,-93.87,"Corn","IA",2018
+232.05,12.15,"93721",2019-04-22,2019-10-25,34000," Soybeans",30," Loam"," V-Rip"," 2 pt Volley, 3 oz Callisto®",NA,NA,42.71,-93.77,"Corn","IA",2019
+208.26,8.8,"93937",2019-05-16,2019-11-04,32000," Soybeans",30," Sand"," Chisel / Field Cultivation"," Halex® GT",NA,NA,41.21,-86.5,"Corn","IN",2019
+212.66,15.74,"93978",2019-05-14,2019-12-07,35000," Potato",30," Sandy Loam"," Conv.-Till"," Roundup PowerMAX®",NA,NA,46.37,-95.06,"Corn","MN",2019
+171.1,8.86,"94326",2019-05-28,2019-10-03,29000," Soybeans",30," Silty Clay Loam"," Vertical-Till"," None",NA,NA,37.56,-89.62,"Corn","MO",2019
+215.33,7.58,"32008",2015-04-30,2015-09-29,36000," Corn",30," Silt Loam"," Min.-Till"," Impact"," Headline"," None",40.6285456063659,-90.5070018768311,"Corn"," IL",2015
+267.86,17.99,"42948",2015-04-27,2015-10-10,42000,NA,NA," Silt Loam",NA," 8 oz. Verdict, 32 oz. Roundup, 2 oz.",NA," 4 oz. Lorsban",41.5046564116238,-88.7418079376221,"Corn"," IL",2015
+299.33,30.5,"42962",2015-05-06,2015-10-21,36000," Soybeans",30," Clay Loam"," Vertical-Till"," Lexar, Buccaneer"," Fortix"," None",39.8471625761516,-84.8737621307373,"Corn"," IN",2015
+250.38,19.94,"43458",2016-04-23,2016-10-12,35000," Corn",30," Silty Clay Loam"," Conv.-Till"," Roundup"," Headline",NA,43.1859338843125,-95.5723089561259,"Corn"," IA",2016
+269.08,13.51,"43476",2016-04-24,2016-10-01,36000," Corn",30," Loam"," Chisel"," Harness Xtra, Roundup PowerMAX"," 6 oz Stratego YLD",NA,42.6585805074341,-91.7274284362793,"Corn"," IA",2016
+266.23,8.72,"43853",2016-04-25,2016-10-10,35500," Corn",30," Loam"," Chisel / V-Rip"," Break Free, Resolve"," 6 oz. Headline AMP",NA,42.8265685041643,-92.1220779418945,"Corn"," IA",2016
+266.23,5.43,"43284",2016-04-26,2016-09-23,34000," Soybeans",30," Silty Clay Loam"," Field Cultivation"," Lexar, Roundup"," Azoxyprop Xtra",NA,41.1799731158404,-89.6772629934959,"Corn"," IL",2016
+256.08,7.24,"43960",2016-04-15,2016-10-01,35000," Soybeans",30," Silty Clay Loam"," Field Cultivation / Disk-Rip"," Bicep II Magnum, Halex GT"," Trivapro",NA,38.2510552930201,-87.4971771240234,"Corn"," IN",2016
+236.77,17.35,"68164",2017-05-05,2017-11-06,33000," Soybeans",30," Silty Clay Loam"," No-Till"," 1.25qt Acuron®, 32oz. Buccaneer"," Trivapro",NA,41.518410605719,-95.1225471496582,"Corn"," IA",2017
+263.17,7.65,"71425",2017-04-25,2017-11-01,36000,NA,NA," Clay Loam",NA," 32 oz Dual, 3.2 oz Callisto, 32 oz",NA,NA,41.189699871253,-91.2846279144287,"Corn"," IA",2017
+240.31,6.36,"68032",2017-04-22,2017-10-01,34000," Soybeans",30," Silty Clay Loam"," Conv.-Till"," Roundup"," Headline AMP",NA,42.2639314206577,-94.1822504997253,"Corn"," IA",2017
+297,4.93,"79457",2018-05-04,2018-10-12,33900," Soybeans",30," Clay Loam"," Field Cultivation"," 3 qt/a Acuron®"," 10 oz Trivapro",NA,39.0145155943297,-88.2160305976868,"Corn"," IL",2018
+266.08,14.18,"80866",2018-04-24,2018-10-24,35000," Soybeans",30," Silty Clay Loam"," Field Cultivation"," Roundup"," Headline",NA,42.3858737110155,-92.9392719268799,"Corn"," IA",2018
+218.08,8.33,"79771",2018-05-29,2018-11-08,34500," Corn",30," Clay Loam"," Field Cultivation"," Callisto®, Dual II Magnum®, Roundup"," Headline AMP",NA,42.4586739084407,-91.9125652313232,"Corn"," IA",2018
+272.92,8.82,"79727",2018-05-04,2018-11-01,34000," Corn",30," Clay Loam"," Chisel / Field Cultivation"," Atrazine, Laudis®, Atrazine, Laudis®"," Delaro",NA,39.8793786742257,-86.4179420471191,"Corn"," IN",2018
+275.23,9.4,"79291",2018-04-26,2018-09-27,36500," Corn",30," Loam"," V-Rip / Field Cultivation"," Balance Flexx"," Delaro",NA,41.9728281741585,-89.9094486236572,"Corn"," IL",2018
+234.08,5.66,"80341",2018-05-10,2018-09-28,33000,NA,NA," Clay Loam",NA," 3.5 qts Degree Xtra, 44 oz. Cornerstone,",NA,NA,38.7594953636889,-89.6272446148646,"Corn"," IL",2018
+258.17,15.32,"80815",2018-05-01,2018-10-26,34500," Soybeans",30," Silty Clay Loam"," Field Cultivation"," Roundup"," Headline AMP",NA,42.8791693689193,-95.9335044653295,"Corn"," IA",2018
+254.69,11.45,"79332",2018-04-24,2018-09-12,35000," Soybeans",30," Silt Loam"," Field Cultivation"," Roundup"," Headline",NA,40.5270964702893,-90.5069929348941,"Corn"," IL",2018
+271.31,8.64,"79512",2018-04-26,2018-09-13,34000," Soybeans",30," Sandy Loam"," Conv.-Till"," 1.5 qt Bicep II Magnum, 1.5 qt Acuron®"," 13 oz Trivapro",NA,38.6930131928349,-87.5510787963867,"Corn"," IL",2018
+283.92,13.38,"94395",2019-04-23,2019-10-15,34000," Corn",30," Silt Loam"," Conv.-Till"," Halex® GT"," Trivapro",NA,42.4808105338659,-90.0090359687565,"Corn"," IL",2019
+262.23,5.34,"94504",2019-04-28,2019-10-01,34000,NA,NA," Sandy Loam",NA," Bicep II Magnum, Roundup",NA,NA,40.1093419075039,-90.1591622829437,"Corn"," IL",2019

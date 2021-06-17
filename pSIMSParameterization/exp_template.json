@@ -1,0 +1,122 @@
+{
+  "crop_name": "Maize",
+  "start_date": "01/01/1980",
+  "end_date": "31/12/2010",
+  "log": "",
+  "reporting_frequency": "end_day",
+  "output_variables": [
+    {
+      "name": "dd/mm/yyyy as Date"
+    },
+    {
+      "name": "biomass"
+    },
+    {
+      "name": "yield"
+    },
+    {
+      "name": "LAI"
+    },
+    {
+      "name": "sws"
+    }
+  ],
+  "initial_condition": {
+    "icrn": ".5",
+    "icrip": "100",
+    "icnd": "0",
+    "icrp": "0",
+    "icrt": "300",
+    "icrz#": "1",
+    "icrze": "1",
+    "icrag": "500",
+    "icrdp": "30",
+    "icdat": "19800101",
+    "standing_fraction": "0",
+    "water_fraction_full": "0.5",
+    "soilLayer": [
+      {
+        "icno3": ".1",
+        "icbl": "5",
+        "icnh4": ".1"
+      },
+      {
+        "icno3": ".1",
+        "icbl": "15",
+        "icnh4": ".1"
+      },
+      {
+        "icno3": ".1",
+        "icbl": "30",
+        "icnh4": ".1"
+      },
+      {
+        "icno3": ".1",
+        "icbl": "100",
+        "icnh4": ".1"
+      },
+      {
+        "icno3": ".1",
+        "icbl": "200",
+        "icnh4": ".1"
+      }
+    ]
+  },
+  "weather": {
+    "file": "Generic"
+  },
+  "planting": {
+    "pdate": "12-may",
+    "edate": "3-nov",
+    "cultivar": "custom",
+    "row_spacing": "762",
+    "depth": "38",
+    "sowing_density": "8.4",
+    "head_grain_no_max": "800",
+    "grain_gth_rate": "9.5",
+    "x_stem_wt": "0    80",
+    "y_height": "0  2000",
+    "tt_emerg_to_endjuv": "145",
+    "est_days_endjuv_to_init": "20",
+    "tt_endjuv_to_init": "0.0",
+    "photoperiod_crit1": "12.5",
+    "photoperiod_crit2": "24.0",
+    "photoperiod_slope": "0",
+    "tt_flower_to_maturity": "680",
+    "tt_flag_to_flower": "10",
+    "tt_flower_to_start_grain": "170",
+    "tt_maturity_to_ripe": "1",
+    "potKernelWt": "300",
+    "rue": "1.9"
+  },
+  "fertilizer": {
+    "fert_criteria": "100",
+    "fert_critical": "90",
+    "type_auto": "NO3_N",
+    "initial_amount": "200",
+    "type": "NH4NO3",
+    "days_after_sowing": "45",
+    "subsequent_amount": "0",
+    "depth": "40"
+  },
+  "reset": {
+    "date": "1-jan",
+    "water": "no",
+    "nitrogen": "no",
+    "surfaceOM": "no"
+  },
+  "irrigation": {
+    "automatic_irrigation": "off",
+    "asw_depth": "0",
+    "crit_fr_asw": "0.75",
+    "efficiency": "0",
+    "allocation_limits": "off",
+    "allocation": "0",
+    "default_no3_conc": "0.0",
+    "default_nh4_conc": "0.0",
+    "default_cl_conc": "0.0"
+  },
+  "cultivarParams":{
+	"minsw" : "0.00002"
+  }
+}

@@ -1,0 +1,603 @@
+---
+title: "pSIMS Tutorial"
+author: "Hamze Dokoohaki"
+date: "3/25/2021"
+output:
+  prettydoc::html_pretty:
+    theme: leonids
+    highlight: vignette
+    toc: true
+    toc_depth: 4
+    
+
+---
+
+
+## Download Files used in this Tutorial
+
+```{r echo=FALSE}
+downloadthis::download_file("template.apsim", "template", "APSIM template", button_type = "primary")
+```
+
+***
+
+In this tutorial, I will be using `pSIMSSiteMaker` and `pSIMCampaignManager` packages to first create a ncdf campaign file and then use the newly created campaign file to create a whole pSIMS simulation for a specific site. This tutorial helps to create a gird over a parameter space defined by the user, run the model over the grid and using a series of observations fit a Gaussian process emulator over the likelihood surface.
+
+Before using these packages, I need to mention that `pSIMCampaignManager` depends on two packages of `JBTools` and `ncdf.tools` which both are unfortunately off the CRAN, however you can the following link to find the latests version : [Link to packages](https://github.com/AgronomicForecastingLab/pSIMS_Campaign_Manager/tree/master/inst)  and manually install them.
+
+```{r setup, include=FALSE}
+options(warn=-1)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+unlink(list.files(".",".nc"))
+```
+
+
+
+```{r}
+library(pSIMSSiteMaker)
+library(pSIMCampaignManager)
+```
+
+### Creating an the Campign file
+
+
+```{r message=FALSE}
+Create_Empty_Campaign(lat=seq(37, 43.5, by=0.25), lon=seq(-83, -96.75, by=-0.25), num_scen=1, filename = "MyCampaign.nc4")
+```
+To double check and make sure our campaign is in the right format:
+
+```{r}
+Get_Camp_dim("MyCampaign.nc4")
+```
+
+
+We create a vector of desiered parameters that need to be optimized along with their acceptable/reasonable upper and lower boundary. `lenght.out.grid` in this example controls the space between nodes in the parameter space and the higher the number of nodes, we will finer mesh and also larger number of total simulations. 
+
+
+```{r}
+params <- list (
+  pars = c("tt_flower_to_maturity",
+           "tt_emerg_to_endjuv",
+           "tt_flower_to_start_grain"),
+  Upper.limit = c(900, 300, 250),
+  lower.limit = c(700, 200, 100),
+  unit=c('C/day','C/day','C/day')
+)
+
+lenght.out.grid <- 4 # the space between points in each dimension in the parameter space
+
+grid <- purrr::pmap(params[c(2,3)], function(Upper.limit, lower.limit) {
+  seq(Upper.limit, lower.limit, length.out = lenght.out.grid)
+}) %>%
+  setNames(params$pars) %>%
+  expand.grid()
+
+```
+
+
+Now let's see the gird. Each row in this grid is a location of a node in the parameter space and a scenario which we need to run the model over it.
+
+```{r paged.print=TRUE}
+print(grid)
+```
+
+
+So we increase the number of scenarios to the `nrow` of the `grid` variable and add each row as a new scenario. 
+
+```{r}
+Add_Scenario("MyCampaign.nc4", nrow(grid)-1)
+
+Get_Camp_dim("MyCampaign.nc4")
+```
+But first for each variable we create a list of matrices which will be used as a scenario.
+
+
+```{r}
+num_scen <- Get_Camp_dim("MyCampaign.nc4")$Scen
+
+for(param in params$pars) {
+
+  new.values <- purrr::map(seq_along(num_scen), ~Campaign_emptyMatrix("MyCampaign.nc4", grid[[param]][.x] )[[1]])
+  
+  AddVar_Campaign("MyCampaign.nc4",
+                Variable = list(Name=param,
+                                Unit=params$unit[which(params$pars==param)],
+                                missingValue=-99,
+                                value= new.values
+                ),
+                attr = list('long_name',"")
+                  )
+}
+
+
+
+```
+
+We can double check the values written in the campign file using the following plots and compare each set of plot with one row of the `grid` variable.
+
+**First and second Scenario**
+
+```{r}
+par(mfrow=c(1,3))
+plot(GetCamp_VarMatrix("MyCampaign.nc4", params$pars[1])$Raster[[1]])
+plot(GetCamp_VarMatrix("MyCampaign.nc4", params$pars[2])$Raster[[1]])
+plot(GetCamp_VarMatrix("MyCampaign.nc4", params$pars[3])$Raster[[1]])
+
+plot(GetCamp_VarMatrix("MyCampaign.nc4", params$pars[1])$Raster[[2]])
+plot(GetCamp_VarMatrix("MyCampaign.nc4", params$pars[2])$Raster[[2]])
+plot(GetCamp_VarMatrix("MyCampaign.nc4", params$pars[3])$Raster[[2]])
+```
+
+
+Now given the fact that the campign file seems to be in the right format we can start creating the simulation and work on creating an emulator on the model output surface or the likelihood surface given a series of observations. 
+
+Finally we will be adding met files in the campaign :
+
+
+```{r message=FALSE, warning=FALSE}
+new.values <- purrr::map(Get_Camp_dim("MyCampaign.nc4")$Scen,~Campaign_emptyMatrix("MyCampaign.nc4",
+                                                    sample(c(1:9), Get_Camp_dim("MyCampaign.nc4")$Count,TRUE)
+)[[1]])
+
+
+
+AddVar_Campaign("MyCampaign.nc4",
+                Variable = list(Name='file',
+                                Unit='Mapping',
+                                missingValue=-99,
+                                value= new.values
+                ),
+                attr = list('long_name',"met00000.met,met00001.met,met00002.met,met00003.met,
+                            met00004.met,met00005.met,met00006.met,met00007.met,met00008.met,
+                            met00009.met")
+)
+
+Edit_mapping_var ("MyCampaign.nc4", 'file' , 'long_name', "met00000.met,met00001.met,met00002.met,met00003.met,met00004.met,met00005.met,met00006.met,met00007.met,met00008.met,met00009.met")
+```
+
+And Finally we removed the default variable created in the `Create_Empty_Campaign` function :
+
+```{r}
+remove_var_campaign("MyCampaign.nc4", outfile="Campaign2.nc4", varnames=c('myvar'))
+```
+
+### Creating pSIMS simulation using the Campaign file
+
+Creating pSIMS simulations using pSIMSSiteMaker is already covered in the pSIMS tutorial ([Link to tutorial](http://192.17.59.89:3838/pSIMSTutorial/)) and we use the same series of codes with minimal changes to create our simulation in this exercise. **Notice** that I use the `Campaign_Path` argument to use my newly made campaign ncdf file. In addition I used a special type of apsim template that collects daily outputs and finally a series of `Auxiliary_files` for collecting daily output.
+
+
+```{r eval=FALSE, include=TRUE}
+#rename the newly mad campaign
+file.copy('Campaign2.nc4', 'Campaign.nc4', overwrite = TRUE)
+#Delete previous versions of the run if exists 
+unlink('/home/hamzed/pSIMS/Emulator', recursive = TRUE)
+
+host <-
+  list(name = 'cc-login.campuscluster.illinois.edu',
+       user = 'hamzed',
+       tunnel = '~/tunnel/tunnel',
+       from='/home/hamzed/pSIMS/Emulator',
+       to='/projects/aces/hamzed/psims/Data/')
+
+#Modifying the params
+tmp_param <- Read_param_template()
+tmp_param$ref_year <- 2018L
+tmp_param$scens <- as.integer(nrow(grid))
+
+#Modifying the campaign json file 
+tmp_camp <- Read_Campaign_template()
+tmp_camp$reporting_frequency <- "end_day"
+tmp_camp$output_variables$name[4] <- "LAI"
+tmp_camp$planting$pdate <- "8-may" 
+tmp_camp$planting$depth <- "38" 
+tmp_camp$planting$sowing_density <- "8.4" 
+tmp_camp$planting$row_spacing <- "762" 
+tmp_camp$fertilizer$initial_amount <- "202"
+
+
+
+pSIMS_Site_Make(dirname = "/home/hamzed/pSIMS",
+                Project_name = "Emulator",
+                Lat=40.04,
+                Lon = -88.5,
+                Campaign_Path ='Campaign.nc4',
+                APSIM_Template_Path="template.apsim",
+                Param_template_Obj=tmp_param,
+                Campaign_json_Obj = tmp_camp,
+                host=host,
+                Bash_control=list(pSIMS_Data_Path="/pysims/data", # No need to edit this
+                                  pSIMS_server_Path="/projects/aces/hamzed/psims/Data",
+                pSIMS_Sing_Image="/projects/aces/mkivi2/psims/Bash/apsim_psims_image/custom_psims_full.img")
+                )
+```
+
+
+```{r eval=FALSE, include=TRUE}
+
+remote.copy.from(host=host,
+                 src='/projects/aces/hamzed/psims/Data/sims/Emulator',
+                 dst='/home/hamzed/pSIMS/Emulator/Results',
+                 delete = TRUE)
+```
+
+### Using the simulation outputs to fit a GP as an emulator
+
+Now that we have model results brought back to our local machine, we can start working with the outputs and create the GP model.
+
+```{r}
+
+Model.results <- list.files("/home/hamzed/pSIMS/Emulator/Results",".out", recursive = TRUE, full.names = TRUE) %>%
+  purrr::map_dfr(function(.x){
+    print(.x)
+  
+    hdr <-     as.character(sapply(as.vector(read.table(file = .x, 
+        header = FALSE, sep = "", nrows = 1, skip = 2)[1, ]), 
+        FUN = function(x) x[[1]]))
+    
+     read.table(file = .x, header = FALSE,  sep = "", skip = 4) %>%
+      `colnames<-`(c(hdr)) %>%
+       dplyr::mutate(Date=as.Date(Date, format = "%d/%m/%Y"),
+              name=basename(.x)) %>%
+       dplyr::select(Date, LAI, name) 
+
+  })
+
+
+```
+
+
+Now let's look at the model simulations for the LAI :
+
+
+```{r}
+library(ggplot2)
+
+Model.results.summ <- Model.results %>%
+  dplyr::group_by(Date) %>%
+  summarise(
+    Laim=mean(LAI),
+    LaiUL=quantile(LAI, probs=0.975),
+    LaiLL=quantile(LAI, probs=0.025)
+  ) 
+
+Model.results.summ%>%
+  filter(Laim>0)%>%
+  ggplot(aes(Date, Laim))+
+  geom_pointrange(aes(ymin=LaiLL, ymax=LaiUL))
+
+
+```
+
+In the above plot and for optimizing phenological paramters, the ideal outcome is to have estimates with large uncertainty throughout the growing season.
+
+In the meantime, we will need a series of obs data for the LAI, which in this example the obs data already exists and it looks like below:
+
+```{r}
+LAI_Obs <- readr::read_csv("LAI_OBS.csv") %>%
+  mutate(Date=as.Date(Date)) %>%
+  group_by(Date) %>%
+  summarise(
+    UL=quantile(LAI, probs=0.975),
+    LL=quantile(LAI, probs=0.025),
+    Mean=mean(LAI, na.rm=TRUE),
+    Median=median(LAI, na.rm=TRUE)
+  ) %>%
+  mutate(Year=lubridate::year(Date), 
+         Dif=UL-LL) %>%
+  filter(Dif !=0)
+
+Model.results.summ%>%
+  filter(Laim>0)%>%
+  ggplot(aes(Date, Laim))+
+  geom_pointrange(aes(ymin=LaiLL, ymax=LaiUL), alpha=0.25)+
+  geom_pointrange(aes(x=Date, y=Mean, ymin=LL, ymax=UL), data=LAI_Obs, color="#873e23")
+
+```
+
+Next we will select simulated LAIs where we have observation for and fit the gp model:
+
+```{r message=FALSE, warning=FALSE, results = 'hide'}
+library(mlegp)
+
+Model.results.gp.ready <- Model.results %>%
+  filter(Date %in% LAI_Obs$Date)
+
+grid$Scenario <- c(0:(nrow(grid)-1))%>%paste0("Generic",.,".out") %>%
+  {ifelse(.=="Generic0.out","Generic.out",.)}
+
+
+#one model for each date
+dats <- unique(Model.results.gp.ready$Date)
+
+GPs <-  dats%>%
+  map(possibly(function(one.date){
+    
+     tmp.grid <- grid
+     tmp.res <-  Model.results.gp.ready %>%
+          filter(Date == one.date)
+    
+    full.grid <- tmp.grid %>% 
+      left_join(tmp.res, 
+        by=c('Scenario'='name')
+      ) %>%
+      dplyr::select(-Scenario, -Date)
+    
+    suppressMessages({
+          mlegp::mlegp(
+      X = full.grid[, 1: length(params$pars)],
+      Z = full.grid[, ncol(full.grid), drop = FALSE],
+      nugget = 0,
+      nugget.known = 1,
+      verbose = 0
+    )
+      
+    })
+
+    
+  } ,otherwise = NULL)) %>%
+  setNames(dats) %>%
+  purrr::discard(is.null)
+
+
+```
+
+Here we write a simple function to use the emulators at each date to create a time series of simulated response variable for fitting :
+ 
+```{r}
+Simulator <- function(newParam=data.frame(), GPs){
+  
+  values <- GPs %>%
+    purrr::map_dbl( ~ predict.gp(.x, newData = newParam))
+  
+  data.frame(
+    Date = names(GPs),
+    Sims=values
+  )
+  
+}
+
+Simulator(newParam = data.frame(tt_flower_to_maturity=610,
+                                tt_emerg_to_endjuv=262,
+                                tt_flower_to_start_grain= 68),
+          GPs) %>%
+  mutate(Date=as.Date(Date))%>%
+  ggplot(aes(Date, Sims))+
+  geom_point()+
+  geom_line()
+
+```
+
+### Using numerical optimization (optim) to find the most optimum parameters
+
+
+```{r eval=FALSE, include=TRUE}
+
+objfun <- function(prms, odata){
+
+  sims <- Simulator(newParam = data.frame(tt_flower_to_maturity = prms[1],
+                                          tt_emerg_to_endjuv = prms[2],
+                                          tt_flower_to_start_grain = prms[3]),
+                    GPs) %>%
+    mutate(Date=as.Date(Date))
+  
+  com.df <- odata %>%
+    left_join(sims, by='Date') %>%
+    filter(!is.na(Sims))
+  ### Arbitary index
+  rss<-sum(((com.df$Mean)-com.df$Sims)^2)
+
+  rss
+}
+
+### just to check and see how the function works
+#objfun(c(850, 150, 50), odata = LAI_Obs) 
+
+
+### real optim function
+op <- optim(c(850, 150, 50),
+            objfun,
+            method="L-BFGS-B",
+            odata = LAI_Obs,
+            lower = params$lower.limit,
+            upper =  params$Upper.limit,
+            control = list(trace = 1, ndeps=c(2, 2, 2))
+                           )
+
+saveRDS(op, file="Optim_out.RDS")
+
+```
+
+
+```{r}
+op <- readRDS("Optim_out.RDS")
+print(op)
+```
+
+
+```{r}
+
+
+Simulator(newParam = data.frame(tt_flower_to_maturity=op$par[1],
+                                tt_emerg_to_endjuv=op$par[2],
+                                tt_flower_to_start_grain= op$par[3]),
+          GPs) %>%
+  mutate(Date=as.Date(Date))%>%
+  ggplot(aes(Date, Sims))+
+  geom_point()+
+  geom_line()+
+  geom_pointrange(aes(ymin=LL, ymax=UL, x=Date, y=Mean), data=LAI_Obs)
+```
+
+### Optimisation with the Shuffle Complex Evolution method
+
+```{r eval=FALSE, include=TRUE}
+library(rtop)
+
+objfun <- function(prms, odata){
+  
+  sims <- Simulator(newParam = data.frame(tt_flower_to_maturity = prms[1],
+                                          tt_emerg_to_endjuv = prms[2],
+                                          tt_flower_to_start_grain = prms[3]),
+                    GPs) %>%
+    mutate(Date=as.Date(Date))
+  
+  com.df <- odata %>%
+    left_join(sims, by='Date') %>%
+    filter(!is.na(Sims))
+  ### Arbitary index
+  rss<-sum(((com.df$Mean)-com.df$Sims)^2)
+  
+  rss
+}
+
+### real optim function
+sceuares <-
+  sceua(
+    objfun,
+    pars = c(751, 234, 181),
+    lower = params$lower.limit,
+    upper = params$Upper.limit,
+    odata = LAI_Obs
+  )
+
+saveRDS(sceuares, file="sceua_out.RDS")
+
+```
+
+
+```{r}
+op_sce <- readRDS("sceua_out.RDS")
+print(op_sce)
+```
+
+
+```{r}
+
+
+Simulator(newParam = data.frame(tt_flower_to_maturity=op_sce$par[1],
+                                tt_emerg_to_endjuv=op_sce$par[2],
+                                tt_flower_to_start_grain= op_sce$par[3]),
+          GPs) %>%
+  mutate(Date=as.Date(Date))%>%
+  ggplot(aes(Date, Sims))+
+  geom_point()+
+  geom_line()+
+  geom_pointrange(aes(ymin=LL, ymax=UL, x=Date, y=Mean), data=LAI_Obs)
+```
+
+
+### Using Bayesian optimization to find the most optimum parameters
+
+
+```{r}
+library(nimble)
+
+predic_R_func <- function(sp1, sp2, sp3){
+  
+    sims <- Simulator(newParam = data.frame(tt_flower_to_maturity = sp1,
+                                          tt_emerg_to_endjuv = sp2,
+                                          tt_flower_to_start_grain = sp3),
+                    GPs) %>%
+    mutate(Date=as.Date(Date))
+  
+  com.df <- LAI_Obs %>%
+    left_join(sims, by='Date') %>%
+    filter(!is.na(Sims))
+  ### Arbitary index
+  LAI.sim<-com.df$Sims
+  
+ return(LAI.sim) 
+}
+# --------------------------------------------This introduces my function to nimble
+predic_NIMBLE_func <- nimbleRcall(
+  function(sp = double(),
+           sp2 = double(),
+           sp3 = double()){}, Rfun = 'predic_R_func',
+returnType = double(1) # This means the output is a vector - double(2) means it's a matrix
+)
+
+#--------------------------------------This does the real fitting
+code <- nimbleCode({
+
+  sp1 ~ T(dnorm(810, 50), 400, 950) # truncated between 400-950, normal with mean=500 and sd=50
+  sp2 ~ T(dnorm(260, 20), 10, 400) # truncated between 400-950, normal with mean=500 and sd=50
+  sp3 ~ T(dnorm(30, 10), 10, 250) # truncated between 400-950, normal with mean=500 and sd=50
+  
+  sigma ~ dunif(0, 5)
+  
+  predicted.y[1:N] <- predic_NIMBLE_func(sp1, sp2, sp3) # We are estimating the mean
+  
+  for(i in 1:N) { # for each obs - This is the liklihood
+    y[i] ~ dnorm(predicted.y[i], sd = sigma)
+  }
+})
+# this checks the model and registers it as an R obj
+model <- nimbleModel(code, 
+                     data = list(y = LAI_Obs$Mean),
+                     inits = list(sp1=800,
+                                  sp2=250,
+                                  sp3=50,
+                                  sigma=0.5),
+                     constants = list(N=length(LAI_Obs$Mean))
+                     )
+
+model$initializeInfo()
+```
+
+
+```{r}
+library(ggraph)
+ggraph(model$graph, layout = 'auto') +
+  geom_edge_link() +
+  geom_node_point() +
+  geom_node_label(aes(label=name))+
+  theme_light()+
+  theme(legend.position = 'bottom')
+
+```
+
+```{r}
+mcmcConf <- configureMCMC(model)
+mcmcConf$printSamplers()
+
+```
+
+
+
+```{r eval=FALSE, include=TRUE}
+DEmcmc1 <- buildMCMC(mcmcConf)
+#---- Alternative way to the two line code for running MCMC
+DEsamples <- nimbleMCMC(code=model,
+                        niter = 2500,
+                        nburnin = 500,
+                        nchains=1,
+                        samplesAsCodaMCMC = TRUE)
+saveRDS(DEsamples, file="BOptim_out.RDS")
+
+```
+
+
+
+```{r}
+DEsamples <- readRDS("BOptim_out.RDS")
+#summary state
+nimble::samplesSummary(DEsamples)
+mcmcplots::traplot(DEsamples)
+```
+
+
+```{r}
+
+
+Simulator(newParam = data.frame(tt_flower_to_maturity=mean(DEsamples[,2]),
+                                tt_emerg_to_endjuv=mean(DEsamples[,3]),
+                                tt_flower_to_start_grain= mean(DEsamples[,4])
+                                ),
+          GPs) %>%
+  mutate(Date=as.Date(Date))%>%
+  ggplot(aes(Date, Sims))+
+  geom_point()+
+  geom_line()+
+  geom_pointrange(aes(ymin=LL, ymax=UL, x=Date, y=Mean), data=LAI_Obs)
+```

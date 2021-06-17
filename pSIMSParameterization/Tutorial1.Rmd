@@ -1,0 +1,71 @@
+---
+title: "pSIMS Tutorial"
+author: "Hamze Dokoohaki"
+date: "4/5/2021"
+output:
+  prettydoc::html_pretty:
+    theme: leonids
+    highlight: vignette
+    toc: true
+    toc_depth: 4
+    
+
+---
+
+
+## Download Files used in this Tutorial
+
+```{r echo=FALSE}
+downloadthis::download_file("Maize_template.xml", "Maize_template", "Maize cultivar parameters", button_type = "primary")
+downloadthis::download_file("exp_template.json", "exp_template", "Campgain json file", button_type = "primary")
+```
+
+***
+
+
+```{r setup, include=FALSE}
+options(warn=-1)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+
+This tutorial is only for the cases in which the user intends to ensemble crop parameters other than the crop cultivars. In that case, make sure that you `pysims` is updated to the latest version. You can find the latest version here :  [Link to the repository](https://github.com/AgronomicForecastingLab).
+
+The key to use parameters other than cultivar for creating ensembles is to make sure your campaign json file includes the following tag:
+
+```{json}
+  "cultivarParams":{
+	"minsw" : "0.00002"
+  }
+```
+
+This tag is named `cultivarParams` and under this tag, you may include any parameter that needs to vary, although the real process of creating ensembles happen when creating the campaign ncdf using `pSIMCampaignManager`. 
+
+
+The second step is to include the following tag inside your crop.xml (such as Maize.xml) for the parameter of interest:
+
+```{xml}
+$cultivarParams.minsw
+```
+The format of the above code follows the structure of your json name convention. In this case we are varying the `minsw` parameter inside the Maize.xml and the overall xml tag will look like below:
+
+```{xml}
+<minsw description="lowest acceptable value for ll">$cultivarParams.minsw</minsw>
+```
+
+
+The final last change is in the apsim template. In your apsim template the crop component should look like this :
+
+```{xml}
+      <$simulation.cropName>
+            <ini>
+               <filename>${simulation.cropName_f}.xml</filename>
+            </ini>
+      </$simulation.cropName>
+```
+
+The only different between this tag and a typical apsim templates is that the ensemble specific crop cultivar is `simulation.cropName_f` instead of `simulation.cropName`.
+
+
+The rest will be taken care of by `pysims` by creating a separate Maize.xml for each simulation (Ensemble) and assigning them to their corresponding Maize  module. 

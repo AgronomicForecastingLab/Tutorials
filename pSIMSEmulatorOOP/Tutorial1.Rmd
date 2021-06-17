@@ -1,0 +1,187 @@
+---
+title: "pSIMS Tutorial"
+author: "Hamze Dokoohaki"
+date: "4/5/2021"
+output:
+  prettydoc::html_pretty:
+    theme: leonids
+    highlight: vignette
+    toc: true
+    toc_depth: 4
+    
+
+---
+
+
+## Download Files used in this Tutorial
+
+```{r echo=FALSE}
+downloadthis::download_file("LAI_Obs.csv", "LAI_Obs", "Sample LAI Measurments", button_type = "primary")
+```
+
+***
+
+In this tutorial, I will be using `pSIMSSiteMaker` and `pSIMCampaignManager` packages to create an emulator similar to the  [Link to Emulator Tutorial](http://192.17.59.89:3838/pSIMSEmulator/). The only different is the use of Object Oriented Programming (OOP) implemented in the `pSIMSSiteMaker` package with the goal of encapsulating the routine data processing and GP development. This method is extremely useful for multi-site and specially hierarchical model calibration. This class developed `Gaussian Process` (GP) models as an emulator at every time point where there is observation. The `Simulator` object then would allow you generate a time series of GP model estimates for a given set of parameters. 
+
+```{r setup, include=FALSE}
+options(warn=-1)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+
+
+```{r}
+library(pSIMSSiteMaker)
+library(tidyverse)
+```
+
+### Creating the emulator using the GP class
+
+The first step is design your parameter space like below. Make sure you use the same name convention used below:
+
+```{r}
+params <- list (
+  pars = c("tt_flower_to_maturity",
+           "tt_emerg_to_endjuv",
+           "tt_flower_to_start_grain"),
+  Upper.limit = c(900, 300, 250),
+  lower.limit = c(700, 200, 100),
+  unit=c('C/day','C/day','C/day')
+)
+
+print(params)
+```
+
+
+**It is very important for the observed data to have a column named Date. This is particularly the same for the model outputs as well.** You have to also make sure that there is only one observation for each time period.
+
+```{r}
+readr::read_csv("LAI_Obs.csv")
+```
+
+You can easily create you emulator by creating an object of class GP, by providing 4 arguments to the `new` function from this class. Then the object created will include all the data, model output and a series of functions for running GPs over all the dates and a numerical optimization method. You can treat this object similar to how `lists` are used in `R` in addition to a series of functions that are able to use their internal data and model output.
+
+```{r}
+
+siteGP <- GP$new(DataPath="LAI_Obs.csv",
+                 ModelOutPath="/home/hamzed/pSIMS/Emulator/Results",
+                 Params=params,
+                 BuildLikGP=FALSE,
+                 GPType="GP",
+                 lenght.out.grid=4)
+
+```
+
+You can check you grid over parameter space using the `Grid` property.
+
+```{r}
+
+head(siteGP$Grid)
+
+```
+
+You can also use the `inspect_obs()` function within your object to inspect the observed data. A similar function is also developed for inspecting the model outputs.
+
+```{r}
+siteGP$inspect_obs()
+
+
+```
+
+
+```{r}
+siteGP$inspect_ModelOut()
+
+
+```
+
+We can also double check the out files that are loaded into our GP object.
+
+```{r}
+head(siteGP$Model.out.files)
+
+```
+
+```{r}
+names(siteGP$GPs)
+
+```
+
+`Simulator` is an important function exposed to the users where you can create simulations of `GP`estimates given a series of parameters within your parameter space. 
+
+```{r}
+
+siteGP$Simulator(newParam = data.frame(tt_flower_to_maturity=751,
+                                       tt_emerg_to_endjuv=234,
+                                       tt_flower_to_start_grain= 181))
+```
+
+Below we are visualizing model estimates (Using all the GPs) for a given set of parameter against the observed data.
+
+
+```{r}
+tmp_obs <- siteGP$obsData %>%
+  `colnames<-`(c("Date", "Obs"))
+
+siteGP$Simulator(newParam = data.frame(tt_flower_to_maturity=751,
+                                       tt_emerg_to_endjuv=234,
+                                       tt_flower_to_start_grain= 181))%>%
+  mutate(Date=as.Date(Date))%>%
+  ggplot(aes(Date, Sims))+
+  geom_point()+
+  geom_line()+
+  geom_point(aes(Date, Obs), data=tmp_obs, color="darkgreen", size=3)
+
+
+```
+
+`objfun` exposes the objective function used for numerical optimization for testing purposes. 
+
+```{r}
+siteGP$objfun(c(751.3503,234.3428, 181.5699),  tmp_obs)
+```
+
+Finally user can perform numerical optimization using the Shuffle Complex Evolution method simply by providing a series of initial conditions. 
+
+```{r eval=FALSE, include=TRUE}
+siteGP$Optim_sceuares(c(751.3503, 234.3428, 181.5699))
+```
+
+
+
+### Debugging GP class:
+
+R6 generator objects have a method called debug() which will enable debugging for a method. This will affect all instances of the class that are created after the debug() is called.
+
+
+```{r eval=FALSE, include=TRUE}
+GP$debug("objfun")
+```
+
+This will be then used like below :
+
+```{r eval=FALSE, include=TRUE}
+s <- GP$new()
+s$objfun()
+# [Debugging prompt]
+
+
+# Disable debugging for future instances:
+GP$undebug("objfun")
+```
+
+
+To enable debugging for a method in a single instance of an object, use the debug() function (not the debug() method in the generator object).
+
+```{r eval=FALSE, include=TRUE}
+s <- GP$new()
+debug(s$objfun)
+s$objfun()
+# [Debugging prompt]
+#Use undebug() to disable debugging on an object’s method.
+
+undebug(s$objfun)
+```
+
+

@@ -1,0 +1,291 @@
+---
+title: "pSIMS Tutorial"
+author: "Hamze Dokoohaki"
+date: "6/17/2021"
+output:
+  prettydoc::html_pretty:
+    theme: leonids
+    highlight: vignette
+    toc: true
+    toc_depth: 4
+    
+
+---
+
+
+## Download Files used in this Tutorial
+
+```{r echo=FALSE}
+downloadthis::download_file("template.apsim", "template", "APSIM Template", button_type = "primary")
+
+downloadthis::download_file("exp_template.json", "exp_template", "Example of Campaign json", button_type = "primary")
+
+```
+
+## Defining the tags
+
+
+```{r setup, include=FALSE}
+options(warn=-1)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+library(dplyr)
+```
+
+
+This tutorial is only for the cases in which the user intend to run a rotation of crops in APSIM pSIMS and using `pSIMSSiteMaker` Package. In that case, make sure that you have the latest version of `pysims`. You can find the latest version here :  [Link to the repository](https://github.com/AgronomicForecastingLab).
+
+### Planting and Harvesting
+
+The new version of `pysims` is able to handle as series of events entered in the Campaign.json and convert them into operations in APSIM ([APSIM Operations](https://www.apsim.info/documentation/model-documentation/infrastructure-and-management-documentation/operations/)). Using this feature we can introduce a series of planting and harvesting operations for different crops. The json tags look like following :
+
+```{json}
+"management":{
+      "events": [
+	  {
+	  "date": "20180504",
+	  "crid":"maize",
+	  "event": "planting",
+	  "plpop": "8.4",
+	  "pldp": "40",
+	  "plrs" : "762", 
+	  "cul_id": "?"
+	  },
+	  {
+	  "date":"20180610",
+	  "event":"fertilizer",
+	  "feamn": "200",
+	  "fedep": "200"
+	  },
+	  {
+	  "event": "harvest", 
+	  "crid":"maize",
+	   "date": "20181120"
+	  },
+	  {
+	  "date": "20190504",
+	  "crid":"soybean",
+	  "event": "planting",
+	  "plpop": "8.4",
+	  "pldp": "40",
+	  "plrs" : "762",
+	  "cul_id": "MG_8"
+	  },
+	  {
+	  "event": "harvest", 
+	  "crid":"soybean",
+	   "date": "20191120"
+	  }
+	  ]
+  }
+
+```
+
+In above tags, each event correspond to either planting or harvesting of a single crop in a rotation. In the case of planting events, `crid` represent the crop name, `event` defines the type of the event (tillage, planting, irrigation, fertilizer, organic_matter, chemical and harvest is supported at this point), `plpop` defines the plant population, `pldp` represent the planting date, `plrs` finally defines the row spacing. It's important to note that, although we will be defining a planting event inside the managment section the `planting` tag in campaign json with cultivar parameters **still needs to be defined** mainly because `psims` uses the `planting` tag for generating the cultivar ensembles. 
+
+
+There are few important notes that needs to be taken into account after adding the management tag in your campaign.json. 
+
+**1)** Your `crop_name` tag on the top of the `campaign.json` should include both crops as following :
+
+```{json}
+ "crop_name": ["Maize","Soybean"]
+```
+
+
+This tag needs to be used in conjunction with the APSIM template attached to this tutorial. Given this tag and the apsim template, pysims will create a crop module in your simulation for each crop specified. 
+
+**2)** In our `campaign.json` we keep the tag for all the other operations such as fertilization and etc but each need to have a tag to specify to what crop this operation will apply. Look at the example below :
+
+
+```{json}
+
+    "fertilizer": {
+    "fert_criteria": "100",
+    "fert_critical": "90",
+    "type_auto": "NO3_N",
+    "initial_amount": "200",
+    "type": "NH4NO3",
+    "days_after_sowing": "45",
+    "subsequent_amount": "0",
+    "depth": "40",
+  	"crop":"Maize"
+    }
+
+```
+
+
+**3)** In psims param files, a single cultivar template should be provided for each crop with the same order they were defined in `crop_name` as follows:
+
+
+```{yaml}
+
+cultivarfile: /pysims/data/SiteMN/Maize_template.xml,/pysims/data/SiteMN/Soybean_template.xml
+```
+
+
+
+**4)** We only can specify randomized cultivar parameters for **only** the first crop (maize in this case). In this case the `cul_id` in the management tag will be left as `?`. This will let `pysims` know that this cultivar needs to be replaced with the new custom cultivar generated (`CC0001` and etc). However for the second crop (soybean in this case) cultivar needs to be provided.
+
+### Fertilizer
+
+Fertilizer operation could be also added using the below tags: 
+
+
+```{json}
+	  {
+	  "date":"20180610",
+	  "event":"fertilizer",
+	  "feamn": "200",
+	  "fedep": "200"
+	  }
+```
+
+In the above tag, `feamn` represent the amount of fertilizer in (Kg/ha) and `fedep` represents the depth in (mm)
+
+
+## Putting them all together 
+
+In `pSIMSSiteMaker` package, we have developed functions to handle creating the management tags. We can use `Mangment_campaign_json_maker` function to create planting, harvesting and fertilizer operations all at once using this function. If no fertilization is needed all the arguments should be left unspecified. Below is an example of full code for creating a rotation simulation in psims :
+
+
+```{r eval=FALSE, include=TRUE}
+
+library(pSIMSSiteMaker)
+#Delete previous versions of the run if exists 
+unlink('/mnt/iccp_storage/hamzed/tmp/Rotation', recursive = TRUE)
+
+host <-
+  list(name = 'cc-login.campuscluster.illinois.edu',
+       user = 'hamzed',
+       tunnel = '~/tunnel/tunnel',
+       from='/mnt/iccp_storage/hamzed/tmp/Rotation',
+       to='/projects/aces/hamzed/psims/Data/sims')
+
+#Modifying the params
+tmp_param <- Read_param_template()
+tmp_param$ref_year <- 2018L
+tmp_param$num_years <- 2
+tmp_param$scen_years <- 2
+tmp_param$scens <- 5
+tmp_param$tappinp$cultivarfile <- c("Maize_template.xml","Soybean_template.xml")
+
+#Modifying the campaign json file 
+tmp_camp <- Read_Campaign_template()
+tmp_camp$reporting_frequency <- "end_day"
+
+# Point 1
+tmp_camp$crop_name <- c("maize", "soybean")
+
+# Point2 
+tmp_camp$fertilizer$crop <- "Maize"
+tmp_camp$planting$crop <- "Maize"
+tmp_camp$initial_condition$residue_type <- "Maize"
+
+#-----Creating the operations for each crop separately
+First_crop <- Mangment_campaign_json_maker(
+  PlantingDate=as.Date("2018-05-03"),
+  HarvestDate=as.Date("2018-11-03"),
+  Crop = "maize",
+  Cultivar = "?", # psims will ensemblize the cultivar
+  Population="8.4",
+  Depth="40",
+  RowSpacing="762",
+  fert_date = as.Date("2018-07-03"),
+  fertamnt= "200",
+  fertdepth= "300"
+)
+
+second_crop <- Mangment_campaign_json_maker(
+  PlantingDate=as.Date("2019-05-03"),
+  HarvestDate=as.Date("2019-11-03"),
+  Crop = "soybean",
+  Cultivar = "MG_8", # cultivar need to be specified here. This needs to be tested but maybe we can use the number system in psims (date_1, date_2) to ensemblize all the cultiavrs
+  Population="8.4",
+  Depth="40",
+  RowSpacing="762"
+)
+
+tmp_camp$management$events <-  c(First_crop, second_crop)
+
+
+pSIMS_Site_Make(
+  dirname = "/mnt/iccp_storage/hamzed/tmp",
+  Project_name = "Rotation",
+  Lat = 40.04,
+  Lon = -88.5,
+  Campaign_Path = 'Campaign.nc4',
+  APSIM_Template_Path = "template.apsim",
+  Param_template_Obj = tmp_param,
+  Campaign_json_Obj = tmp_camp,
+  APSIM_Cultivar_Path = c("Maize_template.xml", "Soybean_template.xml"),
+  # Point 3
+  host = host,
+  Bash_control = list(
+    pSIMS_Data_Path = "/pysims/data/sims",
+    # No need to edit this
+    pSIMS_server_Path = "/projects/aces/hamzed/psims/Data",
+    pSIMS_Sing_Image = "/projects/aces/mkivi2/psims/Bash/apsim_psims_image/custom_psims_full.img"
+  )
+)
+
+
+
+```
+
+
+As it was explained before we can bring back the outputs from the campus cluster using the following code :
+
+```{r eval=FALSE, include=TRUE}
+remote.copy.from(host=host,
+                 src='/projects/aces/hamzed/psims/Data/sims/Rotation/5996',
+                 dst='/mnt/iccp_storage/hamzed/tmp/Rotation/Results',
+                 delete = TRUE)
+```
+
+After bringing the model outputs we can read them in :
+
+
+```{r}
+
+Model.results <- list.files("/mnt/iccp_storage/hamzed/tmp/Rotation/Results",".out", recursive = TRUE, full.names = TRUE) %>%
+  purrr::map_dfr(function(.x){
+    print(.x)
+  
+    hdr <-     as.character(sapply(as.vector(read.table(file = .x, 
+        header = FALSE, sep = "", nrows = 1, skip = 2)[1, ]), 
+        FUN = function(x) x[[1]]))
+    
+     read.table(file = .x, header = FALSE,  sep = "", skip = 4) %>%
+      `colnames<-`(c(hdr)) %>%
+       dplyr::mutate(Date=as.Date(Date, format = "%d/%m/%Y"),
+              name=basename(.x))
+
+  })
+```
+
+Here is the first few lines of the output :
+
+
+```{r}
+
+head(Model.results)
+
+```
+
+
+Finally we can visualize the output to make sure we have reasonable outcomes:
+
+
+```{r}
+library(ggplot2)
+
+Model.results %>%
+  ggplot(aes(Date))+
+  geom_point(aes(y=paddock.maize.yield, color="Corn"))+
+  geom_point(aes(y=paddock.soybean.yield, color="Soybean"))+
+  scale_color_manual(values=c("limegreen", "brown"), name="Crop")+
+  theme(legend.position = "top")
+```
+
+
