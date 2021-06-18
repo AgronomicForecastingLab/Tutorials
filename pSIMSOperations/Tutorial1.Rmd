@@ -289,3 +289,17 @@ Model.results %>%
 ```
 
 
+## Retrieving historic crop rotation from CropScape
+
+In order to find the historic crop rotation for an area from the CropScape (NCDL) you can use the `historic_rotation_CropScape` function from the `pSIMSSiteMaker` package. The following code will retrieve historic rotation for a given area for the time period between 2015-2020. The only note is that the order of points in the `x` and `y` vector are ***really important*** . You have to define your rectangle by first defining the bottom left corner, then top left, then top right and finally bottom right. Finally the first letter of some of the columns is missing from the column names, however the most important column is the last one which represents the `Acreag`.
+
+
+```{r}
+pSIMSSiteMaker::historic_rotation_CropScape(
+         x=c(-88.50118, -88.49830, -88.54710, -88.54996),
+         y=c(40.29701, 40.32438, 40.32727, 40.29990),
+         years=c(2015:2020)
+)
+
+
+```
