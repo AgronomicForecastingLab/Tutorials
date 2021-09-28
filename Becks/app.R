@@ -241,7 +241,7 @@ server <- function(input, output, session) {
               download.file(paste0("https://maps.googleapis.com/maps/api/staticmap?sensor=false&size=768x1024&maptype=hybrid&zoom=17&center=",
                                    map_df()$lat[nrow(map_df())],",",map_df()$lng[nrow(map_df())],"&visible=",
                                    map_df()$lat[nrow(map_df())],",",map_df()$lng[nrow(map_df())],"&markers=color:red%7Clabel:S%7C",
-                                   map_df()$lat[nrow(map_df())],",",map_df()$lng[nrow(map_df())],"&key=AIzaSyBRWdKyg9xbZFN1Mv0phxqcACkxpGz4TR8"),
+                                   map_df()$lat[nrow(map_df())],",",map_df()$lng[nrow(map_df())],"&key=key"),
                             paste0(tmpd,"/",map_df()$ID[nrow(map_df())],"1.png"))
 
 
@@ -261,7 +261,7 @@ server <- function(input, output, session) {
           unlink(paste0(tmpd,"/",map_df()$ID[nrow(map_df())],"2.png"))
 
           download.file(paste0("https://maps.googleapis.com/maps/api/streetview?size=600x300&location=",
-                               map_df()$lat[nrow(map_df())],",",map_df()$lng[nrow(map_df())],"&heading=",input$headslid,"&pitch=-0.76&radius=200&key=AIzaSyBRWdKyg9xbZFN1Mv0phxqcACkxpGz4TR8"),
+                               map_df()$lat[nrow(map_df())],",",map_df()$lng[nrow(map_df())],"&heading=",input$headslid,"&pitch=-0.76&radius=200&key=key"),
                         paste0(tmpd,"/",map_df()$ID[nrow(map_df())],"2.png"))
 
 
