@@ -4,7 +4,7 @@ author: "Hamze Dokoohaki"
 date: "4/5/2021"
 output:
   prettydoc::html_pretty:
-    theme: leonids
+    theme: cosmo
     highlight: vignette
     toc: true
     toc_depth: 4

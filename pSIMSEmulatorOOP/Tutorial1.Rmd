@@ -4,7 +4,7 @@ author: "Hamze Dokoohaki"
 date: "4/5/2021"
 output:
   prettydoc::html_pretty:
-    theme: leonids
+    theme: cosmo
     highlight: vignette
     toc: true
     toc_depth: 4
@@ -110,7 +110,7 @@ names(siteGP$GPs)
 
 `Simulator` is an important function exposed to the users where you can create simulations of `GP`estimates given a series of parameters within your parameter space. 
 
-```{r}
+```{r eval=FALSE, include=TRUE}
 
 siteGP$Simulator(newParam = data.frame(tt_flower_to_maturity=751,
                                        tt_emerg_to_endjuv=234,
