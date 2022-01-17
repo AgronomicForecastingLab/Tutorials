@@ -1,0 +1,77 @@
+---
+title: "How to create maps in R"
+author: "Hamze Dokoohaki"
+date: "10/7/2021"
+output:
+  prettydoc::html_pretty:
+    theme: cosmo
+    highlight: vignette
+    toc: true
+    toc_depth: 4
+    
+
+---
+
+
+
+```{r setup, include=FALSE}
+options(warn=-1)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+
+
+```{r}
+library(tidyverse)
+library(usmap) #import the package
+```
+
+```{r}
+sites <- read.csv("sitess.csv")
+
+head(sites)
+```
+
+
+## usmap
+
+
+I changed the order of column to start with lat/lon. 
+
+```{r}
+transformed_sites<- usmap_transform(sites[,c(3, 2, 1)])
+
+head(transformed_sites)
+```
+
+
+
+```{r}
+
+plot_usmap(fill = "#454545",
+           alpha = 0.985,
+           color = "white",
+           labels = TRUE,
+           label_color = "white",
+           include  = c("IA","IL","IN", "KS","MO","NE","SD", "OH", "WI", "MN")) +
+  labs(title = "",
+       subtitle = "") +
+  ggrepel::geom_label_repel(data = transformed_sites,
+                            aes(x = longitude.1, y = latitude.1, label = paste0("ID: ", Site)),
+                            size = 4, alpha = 0.98,
+                            label.r = unit(0.5, "lines"), label.size = 0.5,
+                             segment.size = 1,
+                            min.segment.length = 0.2,
+                            max.overlaps=20) +
+  theme(panel.background=element_rect(fill="white", size=0), 
+        legend.position = "top", 
+        legend.text = element_text(size=15))+
+  scale_color_brewer(palette = "Set1", name="")+
+  geom_point(data = transformed_sites, color="white",
+             aes(x = longitude.1, y = latitude.1),
+             size = 3)
+
+```
+
+

@@ -3,11 +3,13 @@ title: "pSIMS Tutorial"
 author: "Hamze Dokoohaki"
 date: "4/5/2021"
 output:
-  prettydoc::html_pretty:
-    theme: cosmo
-    highlight: vignette
-    toc: true
-    toc_depth: 4
+  rmdformats::readthedown:
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: true
+    highlight: haddock
+    toc_depth : 4
     
 
 ---
@@ -68,7 +70,7 @@ siteGP <- GP$new(DataPath="LAI_Obs.csv",
                  ModelOutPath="/home/hamzed/pSIMS/Emulator/Results",
                  Params=params,
                  BuildLikGP=FALSE,
-                 GPType="GP",
+                 GPType="GAM",
                  lenght.out.grid=4)
 
 ```
@@ -126,12 +128,7 @@ tmp_obs <- siteGP$obsData %>%
 
 siteGP$Simulator(newParam = data.frame(tt_flower_to_maturity=751,
                                        tt_emerg_to_endjuv=234,
-                                       tt_flower_to_start_grain= 181))%>%
-  mutate(Date=as.Date(Date))%>%
-  ggplot(aes(Date, Sims))+
-  geom_point()+
-  geom_line()+
-  geom_point(aes(Date, Obs), data=tmp_obs, color="darkgreen", size=3)
+                                       tt_flower_to_start_grain= 181))
 
 
 ```

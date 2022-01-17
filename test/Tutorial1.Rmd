@@ -1,0 +1,25 @@
+---
+title: "pSIMS Output Managment"
+author: "Hamze Dokoohaki"
+date: "5/3/2021"
+---
+
+```{r}
+.libPaths()
+```
+
+
+```{r}
+installed.packages()[,1]
+```
+
+
+```{r}
+sessionInfo()
+```
+
+
+
+```{r}
+Sys.info()
+```

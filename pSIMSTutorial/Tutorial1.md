@@ -3,25 +3,19 @@ title: "pSIMS Tutorial"
 author: "Hamze Dokoohaki"
 date: "3/11/2021"
 output:
-  rmdformats::readthedown:
-    self_contained: true
-    thumbnails: false
-    lightbox: true
-    gallery: true
-    highlight: haddock
-    toc_depth : 4
+  prettydoc::html_pretty:
+    theme: leonids
+    highlight: vignette
+    toc: true
+    toc_depth: 4
+    
 
 ---
 In this tutorial, I will be using `pSIMSSiteMaker` and `pSIMCampaignManager` packages to first create a ncdf campaign file and then use the newly created campaign file to create a whole pSIMS simulation for a specific site.
 
 Before using these packages, I need to mention that `pSIMCampaignManager` depends on two packages of `JBTools` and `ncdf.tools` which both are unfortunately off the CRAN, however you can the following link to find the latests version : [Link to packages](https://github.com/AgronomicForecastingLab/pSIMS_Campaign_Manager/tree/master/inst)  and manually install them.
 
-```{r setup, include=FALSE}
-options(warn=-1)
-knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(message = FALSE)
-unlink(list.files(".",".nc"))
-```
+
 <style>
  table{
     border: 1px solid black; padding:10px;
@@ -31,7 +25,8 @@ unlink(list.files(".",".nc"))
 </style>
 
 
-```{r}
+
+```r
 library(pSIMSSiteMaker)
 library(pSIMCampaignManager)
 ```
@@ -83,20 +78,7 @@ The exp_template.json file contains key-value pairs for data that will be writte
 
 Here is an example of irrigation definitions in exp_template.json.
 
-```{json echo=FALSE}
-  "dssat_simulation_control": {
-    "data": [
-        "irrigation": {
-          "ithru": "100",
-          "iroff": "GS000",
-          "imeth": "IR001",
-          "imdep": "40",
-          "ireff": "1.0",
-          "iramt": "10",
-          "ithrl": "80"
-        },...
 
-```
 
 But users may not want to these irrigation settings everywhere. If they have a collection of irrigation amounts (iramt) that change by location, users may create a variable in Campaign.nc4 called iramt. The most basic version of this would be a NetCDF variable in the format of float iramt(lat, lon). When pysims runs for a given point, the appropriate value would transfer from Campaign.nc4 into the experiment file. If iramt is not defined in Campaign.nc4, the static value from exp_template.json is used instead.
 
@@ -108,24 +90,65 @@ There may be situations where users want to have multiple irrigation amounts def
 ### Creating an Empty Campign file
 
 
-```{r message=FALSE}
+
+```r
 Create_Empty_Campaign(lat=c(44,45), lon=c(-91,-92), num_scen=3, filename = "MyCampaign.nc4")
 ```
 
 For some basic inspection purposes, we can use the `Get_Camp_dim` to explore the number of dimensions in your campaign file.
 
-```{r message=FALSE}
+
+```r
 Get_Camp_dim("MyCampaign.nc4")
+```
+
+```
+## $Lat
+## [1] 44 45
+## 
+## $Lon
+## [1] -91 -92
+## 
+## $Scen
+## [1] 1 2 3
+## 
+## $Extent
+## class      : Extent 
+## xmin       : 0.5 
+## xmax       : 3.5 
+## ymin       : 43.5 
+## ymax       : 45.5 
+## 
+## $Count
+## [1] 4
 ```
 
 
 Another handy function named `Campaign_emptyMatrix` also creates a series of matrices (as many as the number of scenarios) that could be used for inserting into our Campaign file. In the code below this  `Get_Camp_dim("MyCampaign.nc4")$Count` helps to find the number of values that needs to be generated for each scenario.
 
 
-```{r message=FALSE}
+
+```r
 Campaign_emptyMatrix("MyCampaign.nc4",
                       runif(Get_Camp_dim("MyCampaign.nc4")$Count, 100,2500)
 )
+```
+
+```
+## [[1]]
+##           [,1]     [,2]
+## [1,]  574.2942 400.5779
+## [2,] 2235.1374 502.4091
+## 
+## [[2]]
+##           [,1]     [,2]
+## [1,]  574.2942 400.5779
+## [2,] 2235.1374 502.4091
+## 
+## [[3]]
+##           [,1]     [,2]
+## [1,]  574.2942 400.5779
+## [2,] 2235.1374 502.4091
 ```
 
 ---
@@ -138,7 +161,8 @@ Campaign variables can be classified into three categories: 1) Variables with nu
 
 ####  Add variables with numeric values: 
 
-```{r message=FALSE}
+
+```r
 #generate new values for your new variable
 num_scen <- Get_Camp_dim("MyCampaign.nc4")$Scen
 
@@ -149,9 +173,27 @@ new.values <- purrr::map(seq_along(num_scen), ~Campaign_emptyMatrix("MyCampaign.
 print(new.values)
 ```
 
+```
+## [[1]]
+##           [,1]     [,2]
+## [1,] 2139.2199 2273.466
+## [2,]  241.0763 2240.229
+## 
+## [[2]]
+##          [,1]     [,2]
+## [1,] 1482.843 2142.808
+## [2,] 2419.936 1760.544
+## 
+## [[3]]
+##          [,1]     [,2]
+## [1,] 2444.631 1581.442
+## [2,] 1579.626 1812.443
+```
+
 Now add the created values to the campaign file :
 
-```{r message=FALSE}
+
+```r
 AddVar_Campaign("MyCampaign.nc4",
                 Variable = list(Name='icrag',
                                 Unit='Kg', 
@@ -162,27 +204,67 @@ AddVar_Campaign("MyCampaign.nc4",
                 ),
                 attr = list('long_name',"Residue weight")
 )
-
 ```
 
 We can then check if the variable was corectly added by using the following functions:
 
-```{r message=FALSE}
 
+```r
 GetCamp_VarMatrix("MyCampaign.nc4", 'icrag')
-
-
-
-plot(GetCamp_VarMatrix("MyCampaign.nc4", 'icrag')$Raster)
+```
 
 ```
+## $Matrix
+## , , 1
+## 
+##           [,1]     [,2]
+## [1,] 2139.2200 2273.466
+## [2,]  241.0763 2240.229
+## 
+## , , 2
+## 
+##          [,1]     [,2]
+## [1,] 1482.843 2142.808
+## [2,] 2419.936 1760.544
+## 
+## , , 3
+## 
+##          [,1]     [,2]
+## [1,] 2444.631 1581.442
+## [2,] 1579.626 1812.443
+## 
+## 
+## $Raster
+## class      : RasterStack 
+## dimensions : 2, 2, 4, 3  (nrow, ncol, ncell, nlayers)
+## resolution : 1, 1  (x, y)
+## extent     : -92.5, -90.5, 43.5, 45.5  (xmin, xmax, ymin, ymax)
+## crs        : +proj=longlat +datum=WGS84 +no_defs 
+## names      : X1, X2, X3 
+## day as %Y%m%d.%f: 1, 2, 3 
+## 
+## 
+## $Attributes
+## $Attributes$units
+## [1] "Kg"
+## 
+## $Attributes$`_FillValue`
+## [1] -99
+```
+
+```r
+plot(GetCamp_VarMatrix("MyCampaign.nc4", 'icrag')$Raster)
+```
+
+![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8-1.png)
 
 ####  Add variables with categorical values: 
 pSIMS uses the `long_name` attribute to store a list of categorical variables, and then uses the indices specified as the value for that variable to map the indices to the categorical values.  
 
 We can use `copy_variable` function to create a new variable based on an exiting variable in our campaign file. Then using the `Edit_mapping_var` we set the `long_name` attribute to a list of desired categorical values. In the below example we use the `file` variable to ensemble the met files in apsim simulations where 'met00000.met,met00001.met...' refers to the name of the met files. Lastly, we create random indices (values should be as many as we have categorical values and 10 the example below)
 
-```{r message=FALSE}
+
+```r
 # How many value I need to produce . lat * lon = count * number of scenarios
 Countv <- Get_Camp_dim("MyCampaign.nc4")$Count * max(Get_Camp_dim("MyCampaign.nc4")$Scen)
 
@@ -196,7 +278,8 @@ set_scenario_val ("MyCampaign.nc4", 'file', sample(1:10, Countv, TRUE))
 
 These variables could be also created as follow using `AddVar_Campaign` function. 1) We create a series of indices between 1-14 allowing psims to map the indices to the categorical values specified in the "long-name".  2) Add those values as a new variable here called `cultivar` and 3) edit the long name by speicifying the list of your cultivar names.
 
-```{r message=FALSE}
+
+```r
 new.values <- purrr::map(1:50,~Campaign_emptyMatrix("MyCampaign.nc4",
                                                     sample(c(1:14), Get_Camp_dim("MyCampaign.nc4")$Count,TRUE)
 )[[1]])
@@ -213,16 +296,61 @@ AddVar_Campaign("MyCampaign.nc4",
                 ),
                 attr = list('long_name',"Nebraska_3.1,Nebraska_3.2,Nebraska_3.3,Nebraska_3.4,HiSoy2846_2.8,Pioneer93M42_3.4,Pioneer91B01_1.0,Pioneer_92M61_2.6,Becks_321NRR_3.2,Becks_367NRR_3.7,Krucr_2.7,Elgin_2.7,K283_2.0,Wayne_3.0")
 )
-
-
 ```
 
 We can also always inspect the campaign file to check if the variables are in the right format using below functions:
 
-```{r message=FALSE}
-Inspect_Camp("MyCampaign.nc4")
 
+```r
+Inspect_Camp("MyCampaign.nc4")
+```
+
+```
+## $Lat
+## [1] 44 45
+## 
+## $Lon
+## [1] -91 -92
+## 
+## $Scen
+## [1] 1 2 3
+## 
+## $Variables
+## [1] "myvar"    "icrag"    "file"     "cultivar"
+## 
+## $Extent
+## class      : Extent 
+## xmin       : 0.5 
+## xmax       : 3.5 
+## ymin       : 43.5 
+## ymax       : 45.5 
+## 
+## $Count
+## [1] 4
+```
+
+```r
 GetCamp_VarMatrix("MyCampaign.nc4", 'file')$Matrix
+```
+
+```
+## , , 1
+## 
+##      [,1] [,2]
+## [1,]    1    6
+## [2,]    5    6
+## 
+## , , 2
+## 
+##      [,1] [,2]
+## [1,]    6    2
+## [2,]    3    3
+## 
+## , , 3
+## 
+##      [,1] [,2]
+## [1,]    1    3
+## [2,]    1    1
 ```
 So in the above output, these values are indices that will be mapped to the list of categorical values in the long_name.
 
@@ -234,7 +362,8 @@ So in the above output, these values are indices that will be mapped to the list
 
 You can also increase the number of scenarios using the code below
 
-```{r message=FALSE}
+
+```r
 #push the scenario dimension to how many we need
 Add_Scenario("MyCampaign.nc4", 3)
 ```
@@ -244,7 +373,8 @@ Add_Scenario("MyCampaign.nc4", 3)
 
 if we decide to increase the number of scenarios, this means that the added new scenarios will not have any values, therefore we can use the below function to copy values from one scenario to others. Then we will be able to modify new copied values later on.
 
-```{r message=FALSE}
+
+```r
 copy_scanarios("MyCampaign.nc4", varname='icrag', fromScenario=1, toScenarios=c(4:6))
 ```
 
@@ -252,7 +382,8 @@ copy_scanarios("MyCampaign.nc4", varname='icrag', fromScenario=1, toScenarios=c(
 
 We can also remove a variable from our Campign nc file using the following function:
 
-```{r eval=FALSE, include=TRUE}
+
+```r
 remove_var_campaign("MyCampaign.nc4", outfile="Campaign2.nc4", varnames=c('file'))
 ```
 
@@ -261,10 +392,36 @@ remove_var_campaign("MyCampaign.nc4", outfile="Campaign2.nc4", varnames=c('file'
 
 If you're also interested to edit a specifc value in your campaign, you may use the following function:
 
-```{r}
 
+```r
 Inspect_Camp("MyCampaign.nc4")
+```
 
+```
+## $Lat
+## [1] 44 45
+## 
+## $Lon
+## [1] -91 -92
+## 
+## $Scen
+## [1] 1 2 3 4 5 6
+## 
+## $Variables
+## [1] "myvar"    "icrag"    "file"     "cultivar"
+## 
+## $Extent
+## class      : Extent 
+## xmin       : 0.5 
+## xmax       : 6.5 
+## ymin       : 43.5 
+## ymax       : 45.5 
+## 
+## $Count
+## [1] 4
+```
+
+```r
 EditVar_Campaign("MyCampaign.nc4", 'icrag',
                  vals=list(lat=c(44),
                            lon=c(-91),
@@ -275,21 +432,56 @@ EditVar_Campaign("MyCampaign.nc4", 'icrag',
 ```
 To check if the edit worked :
 
-```{r}
 
-
+```r
 GetCamp_VarMatrix("MyCampaign.nc4", 'icrag')$Matrix
+```
 
+```
+## , , 1
+## 
+##          [,1]     [,2]
+## [1,] 2273.466 2240.229
+## [2,] 2139.220  200.000
+## 
+## , , 2
+## 
+##          [,1]     [,2]
+## [1,]    0.000 1760.544
+## [2,] 1482.843 2419.936
+## 
+## , , 3
+## 
+##          [,1]     [,2]
+## [1,] 1581.442 1812.443
+## [2,] 2444.631 1579.626
+## 
+## , , 4
+## 
+##          [,1]      [,2]
+## [1,] 2273.466 2240.2285
+## [2,] 2139.220  241.0763
+## 
+## , , 5
+## 
+##          [,1]      [,2]
+## [1,] 2273.466 2240.2285
+## [2,] 2139.220  241.0763
+## 
+## , , 6
+## 
+##          [,1]      [,2]
+## [1,] 2273.466 2240.2285
+## [2,] 2139.220  241.0763
 ```
 
 ####  Edit mapping variables
 
 You can also edit variables with `Mapping` property using the following function:
 
-```{r}
 
+```r
 Edit_mapping_var ("MyCampaign.nc4", 'file' , 'long_name', 'met00000.met,met00001.met,met00001.met,met00001.met,met00001.met,met00001.met,met00001.met,met00001.met,met00001.met,met00001.met')
-
 ```
 
 
@@ -298,9 +490,9 @@ Edit_mapping_var ("MyCampaign.nc4", 'file' , 'long_name', 'met00000.met,met00001
 Finally if we're planning to ensemblize a variable, we can create a variable first, then increase the number of scenarios and finally add uncertainty to the newly added scenarios. Adding the uncertainty could be done using the following function:
 
 
-```{r}
-Add_Uncertainty_scenarios("MyCampaign.nc4", "icrag", sd=5, scenario=1, toscenario=2:3)
 
+```r
+Add_Uncertainty_scenarios("MyCampaign.nc4", "icrag", sd=5, scenario=1, toscenario=2:3)
 ```
 
 This function takes the data in the `scenario` argument and uses that as a mean and generates new values given the `sd` arguments and applies to the other scenarios provided in `toscenario` argument. 
@@ -328,7 +520,8 @@ This package relies on a series of pSIMS file templates for `params`, `campaign.
 
 `Bash_control`
 
-```{r eval=FALSE, include=TRUE}
+
+```r
 tmp_param <- Read_param_template()
 tmp_param$model <- "apsim79"
 
@@ -348,7 +541,6 @@ pSIMS_Site_Make(dirname = ".",
                 pSIMS_Sing_Image="/projects/aces/mkivi2/psims/Bash/apsim_psims_image/custom_psims_full.img")
                 )
 )
-
 ```
 
 
@@ -356,25 +548,26 @@ This function create a new directory in the `dirname` named `Project_name` with 
 
 ***Attention*** should be paid to the type of variables when we're editing editing param file and campaign.json. If you're planning to change for example `ref_year` in the  param file the following code would result writing back a string year (which will break pSIMS):
 
-```{r}
+
+```r
 tmp_param <- Read_param_template()
 tmp_param$ref_year <- 2018
-
 ```
 
 The correct way of adding numerical integer values is like below:
 
-```{r}
+
+```r
 tmp_param <- Read_param_template()
 tmp_param$ref_year <- 2018L
-
 ```
 
 ####  Moving pSIMS simulation between different servers: 
 
 Create a ssh tunnel using the following command to transfer your files between your local machine and the campus cluster :
 
-```{bash eval=FALSE, include=TRUE}
+
+```bash
 ssh -n -N -f -o ControlMaster=yes -S ~/tunnel/tunnel  UIUC_NETID@cc-login.campuscluster.illinois.edu
 ```
 
@@ -382,7 +575,8 @@ ssh -n -N -f -o ControlMaster=yes -S ~/tunnel/tunnel  UIUC_NETID@cc-login.campus
 
 ***Attention*** should be paid to where the simulations are being moved to. If there is a ny directory with the same name, the conetent of that dir will be removed and replaced with newly created simulations.
 
-```{r eval=FALSE, include=TRUE}
+
+```r
 host <-
   list(name = 'cc-login.campuscluster.illinois.edu',
        user = 'hamzed',
@@ -407,8 +601,8 @@ pSIMS_Site_Make(dirname = ".",
 
 After running your simulations you can also transfer back the results to your local machine using the following function:
 
-```{r eval=FALSE, include=TRUE}
 
+```r
 remote.copy.from(host=host,
                  src='/projects/aces/hamzed/psims/Data/EF',
                  dst=file.path(getwd(),"EF_results"),

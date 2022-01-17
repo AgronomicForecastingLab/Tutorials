@@ -3,11 +3,13 @@ title: "pSIMS Tutorial"
 author: "Hamze Dokoohaki"
 date: "6/17/2021"
 output:
-  prettydoc::html_pretty:
-    theme: cosmo
-    highlight: vignette
-    toc: true
-    toc_depth: 4
+  rmdformats::readthedown:
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: true
+    highlight: haddock
+    toc_depth : 4
     
 
 ---

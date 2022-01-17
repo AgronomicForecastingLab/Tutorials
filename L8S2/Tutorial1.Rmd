@@ -1,0 +1,66 @@
+---
+title: "Downloading VI in R from GEE"
+author: "Hamze Dokoohaki"
+date: "5/3/2021"
+output:
+  prettydoc::html_pretty:
+    theme: cosmo
+    highlight: vignette
+    toc: true
+    toc_depth: 4
+    
+
+---
+
+In this tutorial, I will be using `L8S2` package to download vegetation indices in R. This tutorial only works on our private server, mainly because it leverages the docker image that is hosted on our server. Before I get into how to use this package, you can find this package here:
+
+```{r}
+#https://github.com/AgronomicForecastingLab/L8S2
+```
+
+
+```{r setup, include=FALSE}
+options(warn=-1)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+
+
+```{r}
+library(L8S2)
+library(tidyverse)
+```
+```{r}
+?DownloadL8S2
+```
+### Defining the parameters
+
+```{r}
+mysites <- data.frame(x= c(-88.20,-88.20),  #long
+                      y= c(40.06,42.06),    #lat
+                      ID= c('EnergyFarm',"RandomFarm") #Site ID
+)
+
+RS <- DownloadL8S2(mysites,  '2020-01-01', '2021-01-01', Indices = c("NDVI", "EVI", "SAVI", "OSAVI"))
+```
+
+Now we can inspect and visualize the outputs
+```{r}
+head(RS)
+
+```
+
+
+```{r}
+RS %>%
+  ggplot(aes(date, Value))+
+  geom_point(aes(color=Satellite))+
+  geom_line(aes(color=Satellite))+
+  facet_wrap(Index~ ID)+
+  theme(legend.position="top")
+
+```
+
+
+Of course you can use the `write.csv` function also to write this data.frame to the CSV format. 

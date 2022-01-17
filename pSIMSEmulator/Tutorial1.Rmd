@@ -3,11 +3,13 @@ title: "pSIMS Tutorial"
 author: "Hamze Dokoohaki"
 date: "3/25/2021"
 output:
-  prettydoc::html_pretty:
-    theme: cosmo
-    highlight: vignette
-    toc: true
-    toc_depth: 4
+  rmdformats::readthedown:
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: true
+    highlight: haddock
+    toc_depth : 4
     
 
 ---
@@ -104,7 +106,9 @@ for(param in params$pars) {
                 Variable = list(Name=param,
                                 Unit=params$unit[which(params$pars==param)],
                                 missingValue=-99,
-                                value= new.values
+                                value= new.values,
+                                longname="",
+                                prec="float"
                 ),
                 attr = list('long_name',"")
                   )
@@ -146,7 +150,9 @@ AddVar_Campaign("MyCampaign.nc4",
                 Variable = list(Name='file',
                                 Unit='Mapping',
                                 missingValue=-99,
-                                value= new.values
+                                value= new.values,
+                                longname="",
+                                prec="float"
                 ),
                 attr = list('long_name',"met00000.met,met00001.met,met00002.met,met00003.met,
                             met00004.met,met00005.met,met00006.met,met00007.met,met00008.met,

@@ -3,12 +3,12 @@ title: "pSIMS Output Managment"
 author: "Hamze Dokoohaki"
 date: "5/3/2021"
 output:
-  prettydoc::html_pretty:
-    theme: cosmo
-    highlight: vignette
-    toc: true
-    toc_depth: 4
-    
+  rmdformats::readthedown:
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: true
+    highlight: pygments
 
 ---
 
