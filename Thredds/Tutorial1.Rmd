@@ -1,0 +1,109 @@
+---
+title: "Thredds data service"
+author: "Hamze Dokoohaki"
+date: "1/24/2022"
+output:
+  rmdformats::readthedown:
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: true
+    highlight: pygments
+
+---
+
+This data server allows to read model inputs as well as observed data across borad regions for model initialization and model-data fusion purposes. 
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(leaflet)
+library(leaflet.extras)
+library(raster)
+library(listviewer)
+library(stars)
+```
+
+Necessary function for reading and subsetting NCDF files via OPeNDAP. 
+
+```{r}
+
+OpenDap_filereader <- function(url,variable, latVar, lonVar, ymax, ymin, xmin, xmax, datef=NULL) {
+
+  # Finding all the lat/long before subsetting
+  lon <- ncdf4::ncvar_get(ncdf4::nc_open(url),lonVar)
+  lat <- ncdf4::ncvar_get(ncdf4::nc_open(url),latVar)
+  
+  
+  #find the index of the bounds # estimate the difference between our points and lat/lon variable and
+  # find indices that are closest to our x/y min/max
+  ind.y.min <- which.min(abs(ymin - lat))
+  ind.y.max <- which.min(abs(ymax - lat))
+  ind.x.min <- which.min(abs(xmin - lon))
+  ind.x.max <- which.min(abs(xmax - lon))
+  #make the range of indices
+  ydx <-  ind.y.min:ind.y.max
+  xdx <- ind.x.min:ind.x.max
+  
+  #create the subset url
+  subset.url <-
+    paste0(
+      url,
+      '?',variable,'[',ind.y.min,':1:',ind.y.max,']',
+      '[',ind.x.min,':1:', ind.x.max ,']'
+    )
+  
+  print(subset.url)
+ # browser()
+  #read the subset url and replace lat/lon indices to real lat long
+  p <- stars::read_ncdf(subset.url)
+  p
+}
+```
+## Reading file info using NCSS Dataset Description :
+
+```{r}
+ reactjson(XML::xmlToList("http://192.17.59.89:8080/thredds/ncss/Allfiles/AGMIP_GROWING_SEASON.HARM.version1.25/Maize_rf_growing_season_dates_v1.25.nc4/dataset.xml"))
+```
+
+## OPeNDAP
+
+```{r}
+
+rast <- raster::raster("http://192.17.59.89:8080/thredds/dodsC/Allfiles/AGMIP_GROWING_SEASON.HARM.version1.25/Maize_rf_growing_season_dates_v1.25.nc4",varname='planting_day')
+
+plot(rast)
+```
+
+Opendap with subset : 
+
+```{r}
+url.f <- "http://192.17.59.89:8080/thredds/dodsC/Allfiles/AGMIP_GROWING_SEASON.HARM.version1.25/Maize_rf_growing_season_dates_v1.25.nc4"
+subsetnc <- OpenDap_filereader(url=url.f, 'planting_day','lat','lon', ymax=50, ymin=25, xmin=-130, xmax=-70)
+
+
+plot(as(subsetnc, "Raster"))
+```
+
+
+## NetcdfSubset (NCSS ) 
+
+We can also use NCSS to interactivly to download a subset of the your NCDF
+
+## WMS
+
+This service is extremely useful for quickly visualizing your nc files for simple comparison or visualizing and presenting model outputs.
+
+```{r echo=TRUE}
+
+leaflet() %>%
+  addTiles %>% # Add default OpenStreetMap map tiles
+  setView(lng = -90, lat = 40.0, zoom = 2) %>%
+  addWMSTiles("http://192.17.59.89:8080/thredds/wms/Allfiles/AGMIP_GROWING_SEASON.HARM.version1.25/Maize_rf_growing_season_dates_v1.25.nc4",
+    layers = "planting_day",
+    options = WMSTileOptions(format = "image/png", transparent = TRUE),
+    attribution = "Agornomic Forecasting Lab WMS server"
+  ) %>%
+  addWMSLegend(
+    uri = "http://192.17.59.89:8080/thredds/wms/Allfiles/AGMIP_GROWING_SEASON.HARM.version1.25/Maize_rf_growing_season_dates_v1.25.nc4?REQUEST=GetLegendGraphic&LAYER=data_source_used&PALETTE=rainbow"
+  )
+```
