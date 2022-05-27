@@ -29,6 +29,7 @@ downloadthis::download_file("exp_template.json", "exp_template", "Campgain json 
 options(warn=-1)
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(message = FALSE)
+message(.libPaths())
 ```
 
 

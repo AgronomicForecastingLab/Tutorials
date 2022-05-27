@@ -3,13 +3,13 @@ title: "Downloading VI in R from GEE"
 author: "Hamze Dokoohaki"
 date: "5/3/2021"
 output:
-  prettydoc::html_pretty:
-    theme: cosmo
-    highlight: vignette
-    toc: true
-    toc_depth: 4
-    
-
+  rmdformats::readthedown:
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: true
+    highlight: haddock
+    toc_depth : 4
 ---
 
 In this tutorial, I will be using `L8S2` package to download vegetation indices in R. This tutorial only works on our private server, mainly because it leverages the docker image that is hosted on our server. Before I get into how to use this package, you can find this package here:
@@ -23,6 +23,7 @@ In this tutorial, I will be using `L8S2` package to download vegetation indices 
 options(warn=-1)
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(message = FALSE)
+message(.libPaths())
 ```
 
 

@@ -3,6 +3,8 @@ library(leaflet)
 library(leaflet.extras)
 library(DT)
 library(shinytoastr)
+library( mapview )
+
 options(shiny.trace = FALSE)
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -12,6 +14,7 @@ ui <- fluidPage(
     # Sidebar with a slider input for number of bins 
     # Show a plot of the generated distribution
     mainPanel(width = 9,
+              
               leafletOutput('mymap', height = "800px")
     ),
     sidebarPanel(width = 3,
@@ -20,7 +23,8 @@ ui <- fluidPage(
                    column(12, textInput('idtxt','SiteID','')),
                    column(12,br(),actionButton("addbtn","Add", width = "100%")),
                    column(12,br(),actionButton("viewbtn","View", width = "100%")),
-                   column(12, br(), downloadButton("savebtn", "Download !", style = "width:100%;"))
+                   column(12, br(), downloadButton("savebtn", "Download !", style = "width:100%;")),
+                   column(12, br(), downloadButton( outputId = "dl", "Download the scene", style = "width:100%;"))
                  ),br(),
                  fluidRow(
                    column(12, DT::dataTableOutput("saveddata_tbl"))
@@ -41,7 +45,59 @@ server <- function(input, output) {
     
   })
 
+  # store the current user-created version
+  # of the Leaflet map for download in 
+  # a reactive expression
+  foundational.map <- reactive({
+    
+    leaflet() %>%
+      addProviderTiles(providers$Stamen.TonerLite, group = "Toner Lite") %>%
+      addProviderTiles(group = "USGS.USImageryTopo", providers$Esri.WorldImagery,
+                       options = providerTileOptions(noWrap = TRUE)
+      ) %>%
+      addResetMapButton() %>%
+      addDrawToolbar(singleFeature=TRUE) %>%
+      addFullscreenControl() %>%
+      addMeasure(primaryLengthUnit="meters", position = "bottomleft")%>%
+      leafem::addMouseCoordinates	() %>%
+      addLayersControl(
+        baseGroups = c("USGS.USImageryTopo", "Toner Lite"),
+        options = layersControlOptions(collapsed = FALSE)
+      )
+    
+  }) # end of creating user.created.map()
   
+  user.created.map <- reactive({
+    
+    # call the foundational Leaflet map
+    foundational.map() %>%
+      
+      # store the view based on UI
+      setView( lng = input$mymap_center$lng
+               ,  lat = input$mymap_center$lat
+               , zoom = input$mymap_zoom
+      )
+    
+  })
+  
+  # create the output file name
+  # and specify how the download button will take
+  # a screenshot - using the mapview::mapshot() function
+  # and save as a PDF
+  output$dl <- downloadHandler(
+    filename = paste0( Sys.Date()
+                       , "_customLeafletmap"
+                       , ".pdf"
+    )
+    
+    , content = function(file) {
+      mapshot( x = user.created.map()
+               , file = file
+               , cliprect = "viewport" # the clipping rectangle matches the height & width from the viewing port
+               , selfcontained = FALSE # when this was not specified, the function for produced a PDF of two pages: one of the leaflet map, the other a blank page.
+      )
+    } # end of content() function
+  ) # end of downloadHandler() function
   
   output$savebtn <- downloadHandler(
     filename = function() {
@@ -55,20 +111,7 @@ server <- function(input, output) {
   )
 
   output$mymap <- renderLeaflet({
-                  leaflet() %>%
-              addProviderTiles(providers$Stamen.TonerLite, group = "Toner Lite") %>%
-              addProviderTiles(group = "USGS.USImageryTopo", providers$Esri.WorldImagery,
-                               options = providerTileOptions(noWrap = TRUE)
-              ) %>%
-              addResetMapButton() %>%
-              addDrawToolbar(singleFeature=TRUE) %>%
-              addFullscreenControl() %>%
-              addMeasure(primaryLengthUnit="meters", position = "bottomleft")%>%
-              leafem::addMouseCoordinates	() %>%
-              addLayersControl(
-                baseGroups = c("USGS.USImageryTopo", "Toner Lite"),
-                options = layersControlOptions(collapsed = FALSE)
-              )
+    foundational.map()
           
   })
     

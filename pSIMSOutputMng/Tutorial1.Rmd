@@ -18,6 +18,7 @@ In this tutorial, I will be using `pSIMSSiteMaker` to manage the outputs generat
 options(warn=-1)
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(message = FALSE)
+message(.libPaths())
 ```
 
 

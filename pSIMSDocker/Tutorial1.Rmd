@@ -1,0 +1,45 @@
+---
+title: "Rstudio-Sever on pSIMS docker image"
+author: "Hamze Dokoohaki"
+date: "6/17/2021"
+output:
+  rmdformats::readthedown:
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: true
+    highlight: haddock
+    toc_depth : 4
+---
+```{r setup, include=FALSE}
+options(warn=-1)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+message(.libPaths())
+```
+
+
+In this tutorial I'll quickly share the trick to use the rstudio server that is installed in our pSIMS docker image. The reason I added this feature to the docker image is that, often we need to develop a code that uses the specific R and Python packages that are installed only on our docker image. For example, I have found that it's much easier to work with the `reticulate` package when you are in an interactive environment. So let's get to it. 
+
+**First** thing first is to make sure you have the latest docker image, from our docker hub. If you don't know how to acess that contact me (hamzed@illinois.edu) directly. 
+
+
+**Second** run the docker by exposing the `8787` port to the local machine :
+
+```{bash eval=FALSE, include=TRUE}
+docker run -it --rm -v C:\Users\hamzed\Desktop\psims:/pysims/data -p 8787:8787 uiuc_custom_full_psims:latest bash
+
+```
+
+In the command above `-p 8787:8787` askes docker to expose the `8787` port inside the docker and map that out to our local `8787` port. This way when the rstudio server is running inside the docker and serving the software on port `8787` inside docker you can find what it servers on your localhost. 
+
+
+**Lastly** run the rstudio server by typing the below command into the docker image console :
+
+```{bash eval=FALSE, include=TRUE}
+rstudio-server start
+```
+
+
+Now you can go to `http://localhost:8787` in your web browser in your local machine and use `newuser` as both username and password to login to the rstudio server.
+

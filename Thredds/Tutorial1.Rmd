@@ -1,5 +1,5 @@
 ---
-title: "Thredds data service"
+title: "THREDDS data server"
 author: "Hamze Dokoohaki"
 date: "1/24/2022"
 output:
@@ -8,11 +8,12 @@ output:
     thumbnails: false
     lightbox: true
     gallery: true
-    highlight: pygments
+    highlight: haddock
+    toc_depth : 4
 
 ---
 
-This data server allows to read model inputs as well as observed data across borad regions for model initialization and model-data fusion purposes. 
+This data server allows to read model inputs as well as observed data across borad regions for model initialization and model-data fusion purposes. This server can be combined with 'pSIMSCampaignManager' and 'pSIMSSiteMaker' R packages to create more robust simulations using initial condition, management and model parameters developed by our group or independent datasets.
 
 ```{r message=FALSE, warning=FALSE}
 library(tidyverse)
@@ -21,6 +22,7 @@ library(leaflet.extras)
 library(raster)
 library(listviewer)
 library(stars)
+library(httr)
 ```
 
 Necessary function for reading and subsetting NCDF files via OPeNDAP. 
@@ -28,7 +30,6 @@ Necessary function for reading and subsetting NCDF files via OPeNDAP.
 ```{r}
 
 OpenDap_filereader <- function(url,variable, latVar, lonVar, ymax, ymin, xmin, xmax, datef=NULL) {
-
   # Finding all the lat/long before subsetting
   lon <- ncdf4::ncvar_get(ncdf4::nc_open(url),lonVar)
   lat <- ncdf4::ncvar_get(ncdf4::nc_open(url),latVar)
@@ -59,13 +60,19 @@ OpenDap_filereader <- function(url,variable, latVar, lonVar, ymax, ymin, xmin, x
   p
 }
 ```
+
+Example of reading in maize planting date from the growing season file developed by AGMIP ; [This file can be found here in our TDS. ](http://192.17.59.89:8080/thredds/catalog/Allfiles/AGMIP_GROWING_SEASON.HARM.version1.25/catalog.html?dataset=testDatasetScan/AGMIP_GROWING_SEASON.HARM.version1.25/Maize_rf_growing_season_dates_v1.25.nc4) : 
+
 ## Reading file info using NCSS Dataset Description :
 
-```{r}
- reactjson(XML::xmlToList("http://192.17.59.89:8080/thredds/ncss/Allfiles/AGMIP_GROWING_SEASON.HARM.version1.25/Maize_rf_growing_season_dates_v1.25.nc4/dataset.xml"))
+```{r,eval=FALSE}
+XML::xmlToList("http://192.17.59.89:8080/thredds/ncss/Allfiles/AGMIP_GROWING_SEASON.HARM.version1.25/Maize_rf_growing_season_dates_v1.25.nc4/dataset.xml")
 ```
 
+You can get access to the files on the server using few different services which here I quickly explain OPeNDAP and WMS. 
+
 ## OPeNDAP
+
 
 ```{r}
 
@@ -74,11 +81,25 @@ rast <- raster::raster("http://192.17.59.89:8080/thredds/dodsC/Allfiles/AGMIP_GR
 plot(rast)
 ```
 
+
 Opendap with subset : 
 
-```{r}
+The only downside with this method is that the `OpenDap_filereader` function calls the server and reads the original file 3 times which is not very efficient when hundreds/thousands of simulations attempt to call the server. A more efficient appraoch is presented under NCSS service. 
+
+```{r message=FALSE, warning=FALSE}
 url.f <- "http://192.17.59.89:8080/thredds/dodsC/Allfiles/AGMIP_GROWING_SEASON.HARM.version1.25/Maize_rf_growing_season_dates_v1.25.nc4"
-subsetnc <- OpenDap_filereader(url=url.f, 'planting_day','lat','lon', ymax=50, ymin=25, xmin=-130, xmax=-70)
+
+# This function is defined on the top of this tutorial. 
+subsetnc <- OpenDap_filereader(
+  url = url.f,
+  'planting_day',# Variable 
+  'lat', # name of dim with lat values
+  'lon',# name of dim with lon values
+  ymax = 50, # defining a boundry 
+  ymin = 25,
+  xmin = -130,
+  xmax = -70
+)
 
 
 plot(as(subsetnc, "Raster"))
@@ -87,7 +108,79 @@ plot(as(subsetnc, "Raster"))
 
 ## NetcdfSubset (NCSS ) 
 
-We can also use NCSS to interactivly to download a subset of the your NCDF
+We can also use NCSS to interactively  download a subset of the your NCDF. Another method for subsetting directly from the server (passing the task of subsseting files to the server) is POST a form on NCSS protocol as follows:
+
+```{r, eval=FALSE}
+
+u4 <-
+  paste0(
+    "http://192.17.59.89:8080/thredds/ncss/Allfiles/AGMIP_GROWING_SEASON.HARM.version1.25/Maize_rf_growing_season_dates_v1.25.nc4?var=planting_day&north=",
+    50,
+    "&west=",
+    -130,
+    "&east=",
+    -70,
+    "&south=",
+    25,
+    "&disableLLSubset=on&disableProjSubset=on&horizStride=1&accept=netcdf&addLatLon=true"
+  )
+
+
+
+resp <- POST(u4, body=list(), encode="form")
+
+writeBin(content(resp),"test.nc4")
+
+plot(raster::raster('test.nc4'))
+
+```
+
+## THREDDS R Package
+
+```{r, eval=FALSE}
+#devtools::install_github("bocinsky/thredds")
+
+library(thredds)
+
+cida <- "http://192.17.59.89:8080/thredds/catalog/Allfiles/catalog.html"
+
+datasets <- tds_list_datasets(thredds_url = cida)
+datasets
+```
+
+Choose your dataset (here is AGMIP_GROWING_SEASON.HARM.version1.25) and then list services for a specific file (here is Maize_ir_growing_season_dates_v1.25.nc4).
+
+```{r, eval=FALSE}
+
+datasets.plant <- tds_list_datasets(thredds_url = datasets[datasets$dataset =="AGMIP_GROWING_SEASON.HARM.version1.25/",]$path)
+
+print(datasets.plant)
+
+loca_services <- tds_list_services(datasets.plant[datasets.plant$dataset =="Maize_ir_growing_season_dates_v1.25.nc4",]$path)
+loca_services
+
+```
+
+Choose your service (here I choose NCSS) and load the variables. 
+
+```{r, eval=FALSE}
+loca_ncss <- loca_services[loca_services$service == "NetcdfSubset",]$path
+
+loca_vars <- tds_ncss_list_vars(ncss_url = loca_ncss)
+
+loca_vars[,1:5]
+```
+```{r}
+CCSM4 <- tds_ncss_download(ncss_url = loca_ncss,
+                           out_file = paste0(tempdir(),"/plant.nc"),
+                           bbox = sf::st_bbox(c(xmin = -130, xmax = -70, ymin = 25, ymax = 50)),
+                           vars = loca_vars$name[4],
+                           ncss_args = list(temporal = "all"))
+
+plot(raster::raster(CCSM4))
+
+```
+
 
 ## WMS
 
@@ -107,3 +200,4 @@ leaflet() %>%
     uri = "http://192.17.59.89:8080/thredds/wms/Allfiles/AGMIP_GROWING_SEASON.HARM.version1.25/Maize_rf_growing_season_dates_v1.25.nc4?REQUEST=GetLegendGraphic&LAYER=data_source_used&PALETTE=rainbow"
   )
 ```
+

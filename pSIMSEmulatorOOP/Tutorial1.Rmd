@@ -29,6 +29,7 @@ In this tutorial, I will be using `pSIMSSiteMaker` and `pSIMCampaignManager` pac
 options(warn=-1)
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(message = FALSE)
+message(.libPaths())
 ```
 
 

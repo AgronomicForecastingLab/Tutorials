@@ -1,0 +1,164 @@
+---
+title: "Code Snippets"
+author: "Hamze Dokoohaki"
+date: "5/6/2022"
+output:
+  rmdformats::readthedown:
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: true
+    highlight: haddock
+    toc_depth : 4
+---
+```{r setup, include=FALSE}
+options(warn=-1)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+message(.libPaths())
+```
+
+## Here we are collecting code snippets for a series of tasks, including simple visualiziation of maps etc. 
+
+### Downloading Rotation maps for a county - Hamze 
+```{r echo=TRUE, eval=FALSE}
+library(lubridate)
+library(ncdf4)
+library(pSIMSSiteMaker)
+library(pSIMCampaignManager)
+library(furrr)
+plan(multisession)
+#-------
+library(tidyverse)
+library(raster)
+library(stars)
+library(maps)
+library(sf)
+
+county <- "lee"
+years <- 2010:2020
+state <- 'Illinois'
+
+mapping_guid <- list(corn=1, soybeans = 0)
+# ------------------------------------- Find the boundry of our county 
+IL_counties <- st_as_sf( map('county', state, fill=TRUE, plot =FALSE)) %>%
+  filter(grepl(county, ID)) %>%
+  dplyr::select(-ID) %>%
+  as(., "Spatial")
+#------------------------------------ Generate empty raster layer and rasterize points for our county
+county_raster <- raster(crs = crs(IL_counties), vals = 1,
+                         resolution = c(0.01, 0.01), # 1 km by 1 km . every degree is ~ 100 km
+                         ext = extent(IL_counties)) %>%
+  rasterize(IL_counties, .)
+
+#convert the raster to polygon to loop over each pixel
+county_polys <- rasterToPolygons(county_raster)
+#------------------------------------ For each pixel extract the rotation
+rotations_df <- county_polys@polygons %>%
+  future_map_dfr(possibly(function(x){
+    
+    xring <- x@Polygons[[1]]@coords[,1]
+    yring <- x@Polygons[[1]]@coords[,2]
+    
+    pSIMSSiteMaker::historic_rotation_CropScape(xring, yring, years) %>%
+      purrr::map_chr( ~ .x[[1]]) %>%
+      as.data.frame() %>%
+      mutate(years, 
+             xcenter =  mean(xring),
+             ycenter = mean(yring)
+      ) %>%
+      `colnames<-`(c("Crop", "Years", "xcenter", "ycenter"))
+  }, otherwise = NULL), .progress = TRUE)
+
+
+Rot_Rasters <- rotations_df %>%
+  split(.$Years) %>%
+  purrr::map(function(raster.oneyr){
+    raster.oneyr$crp<- raster.oneyr$Crop %>%
+      tolower() %>%
+      purrr::map(~ ifelse(is.null(mapping_guid[[.x]]), -1, mapping_guid[[.x]]))
+      
+    raster::rasterFromXYZ(raster.oneyr[,c("xcenter","ycenter","crp")])
+  }) %>%
+  setNames(unique(rotations_df$Years))
+
+
+names(Rot_Rasters) %>%
+  purrr::map(~ plot(Rot_Rasters[[.x]], main=.x))
+
+#saveRDS(Rot_Rasters, "Rot_Rasters.RDS")
+#-------------------------------------------------------------------
+MyVariable <- Rot_Rasters[[1]]
+MyVariable[is.na(MyVariable)] <- -1
+
+fname <-  "MyCampaign.nc4"
+Create_Empty_Campaign(lat=unique(raster::xyFromCell(MyVariable, 1:length(MyVariable))[,2]),
+                      lon=unique(raster::xyFromCell(MyVariable, 1:length(MyVariable))[,1]),
+                      num_scen=50,
+                      filename =fname)
+
+
+new.values <- purrr::map(seq_along(num_scen),
+                         ~Campaign_emptyMatrix("MyCampaign.nc4", raster::rasterToPoints(MyVariable)[,3])[[1]]
+                         )
+
+AddVar_Campaign("MyCampaign.nc4",
+                Variable = list(Name=paste0('crid_',2),
+                                Unit='Mapping',
+                                missingValue=-99,
+                                prec="float",
+                                longname= "maize,soybean,fallow", 
+                                value= new.values
+                )
+)
+
+
+Inspect_Camp("MyCampaign.nc4")
+
+########## Visualize 
+library(tmap)
+
+tm_shape(GetCamp_VarMatrix('MyCampaign.nc4','crid_2')$Raster[[1]])+
+tm_raster("X1", palette = RColorBrewer::brewer.pal(3, "Set1"),
+          title = "", alpha =0.85, style="cat")  + 
+tm_layout(scale=1.2, bg.color = "white", legend.outside = TRUE)+
+tm_grid()
+
+
+
+```
+
+
+### Reading and plotting yield for a county - Hamze 
+```{r echo=TRUE, eval=FALSE}
+
+library(rnassqs)
+library(tidyverse)
+
+api_key <- '' # https://quickstats.nass.usda.gov/api
+
+nassqs_auth(key = api_key)
+# Set parameters
+params <- list(
+  commodity_desc = c("CORN","SOYBEANS"),
+  domaincat_desc = "NOT SPECIFIED",
+  agg_level_desc = "COUNTY",
+  state_alpha = "IL", # please make this an argument 
+  year = 2010:2020 # please set this based on min max year in the simulated # you man need to read the simulated first
+)
+
+# Yields and Acres
+yields <- nassqs_yields(params)%>%
+  dplyr::select(commodity_desc, statisticcat_desc, unit_desc, county_name, year, Value) %>%
+  filter(county_name == toupper("lee")) %>%
+  mutate(value_kg_ha = Value * 62.77, 
+         year=as.numeric(year)) %>%
+  mutate(value_kg_ha_dry = purrr::map2_dbl(commodity_desc, value_kg_ha,  ~ ifelse(.x == 'CORN', .y * 0.845, .y * 0.87)))
+
+
+yields %>%
+  ggplot(aes(year, value_kg_ha_dry)) +
+  geom_point(aes(color=commodity_desc), size=3)+
+  geom_line(aes(color=commodity_desc))+
+  facet_wrap(~commodity_desc, scales = "free")
+```
