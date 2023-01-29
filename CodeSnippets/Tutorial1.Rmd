@@ -162,3 +162,187 @@ yields %>%
   geom_line(aes(color=commodity_desc))+
   facet_wrap(~commodity_desc, scales = "free")
 ```
+
+
+### Reading APSIM xmls crop files and parsing the cultivars
+```{r echo=TRUE, eval=TRUE}
+library(dplyr)
+library(xml2)
+
+
+
+nodes <- read_xml('Maize.xml')
+mmm <- xml_find_all(nodes, ".//Model")
+
+mm <- xml_children(mmm)%>%
+  xml2::xml_path()
+
+# find cultivar tags and their paths
+cultivars.path <- mm%>% 
+   purrr::map(function(tmm){
+    xml2::xml_children(mmm) %>%
+      xml2::xml_find_all(tmm) %>%
+      xml2::xml_attr('cultivar')
+  }) %>%
+  setNames(mm) %>%
+  purrr::discard(~is.na(.))
+
+
+names(cultivars.path) %>%
+   purrr::map_dfr(function(pp){
+    
+    
+    data.frame(
+      tt_emerg_to_endjuv = xml2::xml_children(mmm) %>%
+      xml2::xml_find_all(pp) %>%
+      xml2::xml_children() %>%
+      xml2::xml_find_all(paste0(pp,"/tt_emerg_to_endjuv ")) %>%
+      xml2::xml_text() %>%
+      as.numeric(), 
+      tt_flower_to_maturity = xml2::xml_children(mmm) %>%
+        xml2::xml_find_all(pp) %>%
+        xml2::xml_children() %>%
+        xml2::xml_find_all(paste0(pp,"/tt_flower_to_maturity ")) %>%
+        xml2::xml_text() %>%
+        as.numeric(),
+      tt_flower_to_start_grain = xml2::xml_children(mmm) %>%
+        xml2::xml_find_all(pp) %>%
+        xml2::xml_children() %>%
+        xml2::xml_find_all(paste0(pp,"/tt_flower_to_start_grain ")) %>%
+        xml2::xml_text() %>%
+        as.numeric()
+    ) %>%
+      mutate(Cultivar= basename(pp))
+   
+  }) %>%
+  summary
+
+```
+
+
+### Creating pSIMS complient Met files form ERA5:
+```{r echo=TRUE, eval=FALSE}
+library(pSIMSMetMaker)
+library(tidyverse)
+setwd("C:/Users/hamzed/Downloads")
+sites.path <- system.file("", 'pSIMS_extent.RData', package = "pSIMSMetMaker")
+load(sites.path)
+#------------------------------------------------- ERA - NEEDS LOGIN
+#Login setup
+#Create a free CDS user account by self registering.
+#Once your user account has been verified you can get your personal user ID and key by visiting the user profile.
+#This information is required to be able to retrieve data via the ecmwfr package
+#https://github.com/bluegreen-labs/ecmwfr
+
+
+  i <- 1
+  user <- "10027"
+  wf_set_key(user = user, key = "e5d0082f-ae4d-44d6-a1e0-3b581282033f", 'cds')
+  
+  # Extracting the tile(s) lat/lon info
+  sites <- pSIMS.extent %>%
+    dplyr::filter(name %in% c('0025/0046'))
+  # Request ERA5 data
+  era5_data <- era5_tile_request(user, "2017-01-01", "2021-12-31",
+                                 sites$xmin[i], sites$xmax[i], sites$ymin[i], sites$ymax[i],
+                                 fname=paste0(gsub("/", "_", sites$name[i]),".nc"))
+  # Reformat ERA5 data
+  era5_data_refmt <- reformat_ERA_data(era5_data)
+  #Aggregate the ERA5 data
+  era5_data_Agg <- ERA5_aggregate(era5_data_refmt)
+  
+  pSIMSMetMaker::write_met(era5_data_Agg[[1]], paste0('clim_', gsub("/", "_", sites$name[i]), '.tile.nc4'))
+  
+
+
+```
+
+### Estimating ensemble weights post-hoc after assimilation:
+```{r echo=TRUE, eval=FALSE} 
+library(mvtnorm)
+library(furrr)
+plan(multisession)
+
+Ens_Weighting <- function(SDA.out){
+
+  SDA <- SDA.out %>% discard(~ length(.x)==1)
+  
+  Allw <- data.frame(Date = SDA %>% map_chr(~ .x$Obs$Date %>% as.character) %>% as.Date()) %>%
+    mutate(id=1:n()) %>%
+    mutate(Year=lubridate::year(Date)) %>%
+    split(.$Year) %>%
+    future_map_dfr(function(one.year){
+
+      SDA.year <- SDA[one.year$id]
+      # Estimate the wights for each year
+      SDA.year %>%
+        map_dfr(function(ss){
+          flux.weights <- dmvnorm(ss$Forecast$X,
+                                  mean =ss$mu.a,
+                                  sigma = ss$Pa,
+                                  log = FALSE)
+          
+          
+      data.frame(Weights= scales::rescale(flux.weights), 
+                 Date=ss$Obs$Date) %>%
+        mutate(Ens= 1:n())
+        })
+    }, .progress = TRUE)
+ 
+  Annual.W <- Allw %>%
+    mutate(Year = lubridate::year(Date)) %>%
+    group_by(Ens, Year) %>%
+    summarise(
+      Weight= sum(Weights)
+    )
+  
+  Annual.W %>%
+    split(.$Year) %>%
+    map_dfr(function(yr){
+     yr$ScaledW <- yr$Weight/sum(yr$Weight)
+     yr %>%
+       dplyr::select(-Weight)
+    })
+}
+
+ss <- Ens_Weighting(SDA.out)
+
+```
+
+### Re-running broken simulations after pSIMS generates the simulations:
+
+Find the directories with files "core*" . This file is usually created when a simulation breaks
+
+```{bash , eval=FALSE}
+#!/bin/bash
+
+for i in $(find /scratch/users/tsrai/illinois_gallatin_SDA/illinois_gallatin_SDA/* -name "core*" ); do 
+
+	DIRNAME=$(dirname $i)
+	RUNPATH="${DIRNAME}/APSIM_Run.sh" 
+	echo ${RUNPATH}
+	cp -fr "APSIM_Run.sh" ${DIRNAME}
+	qsub -v simpath=${DIRNAME} ${RUNPATH}
+	echo "----------------------------------"
+done
+
+
+```
+
+APSIM_Run.sh :
+
+```{bash , eval=FALSE}
+
+#!/bin/sh
+#SBATCH --time=12:00:00  
+#SBATCH --partition=aces
+#SBATCH --mem=4000
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+source ~/.bashrc
+simpath=${simpath}
+
+echo ${simpath}
+
+singularity exec -B /projects/aces/tsrai/psims/Data:/pysims/data /projects/aces/hamzed/psims/Data/SingularityImg/pSIMSLatest.simg mono /Apsim79/Model/Apsim.exe "${simpath}/Generic.apsim"
+```

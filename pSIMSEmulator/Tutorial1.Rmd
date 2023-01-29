@@ -493,6 +493,62 @@ Simulator(newParam = data.frame(tt_flower_to_maturity=op_sce$par[1],
   geom_pointrange(aes(ymin=LL, ymax=UL, x=Date, y=Mean), data=LAI_Obs)
 ```
 
+### Optimisation with the NSGA-II: Box-constrained multiobjective optimization using the elitist non-dominated sorting genetic algorithm
+
+```{r, include=TRUE, eval=FALSE, include=TRUE}
+library(nsga2R)
+
+objfun <- function(prms, odata=LAI_Obs){
+  
+  sims <- Simulator(newParam = data.frame(tt_flower_to_maturity = prms[1],
+                                          tt_emerg_to_endjuv = prms[2],
+                                          tt_flower_to_start_grain = prms[3]),
+                    GPs) %>%
+    mutate(Date=as.Date(Date))
+  
+  com.df <- odata %>%
+    left_join(sims, by='Date') %>%
+    filter(!is.na(Sims))
+  ### Arbitary index
+  rss<-sum(((com.df$Mean)-com.df$Sims)^2)
+  
+  t(c(rss))
+}
+
+### real optim function
+debugonce(nsga2R)
+nsgaout <- nsga2R(
+  objfun,
+  3,
+  1,
+  lowerBounds =  params$lower.limit,
+  upperBounds =  params$Upper.limit,
+  popSize = 10
+)
+#saveRDS(nsgaout, file="NSGA_out.RDS")
+
+```
+
+```{r  eval=FALSE, include=TRUE}
+op_NSGA<- readRDS("NSGA_out.RDS")
+print(op_NSGA)
+```
+
+
+```{r  eval=FALSE, include=TRUE}
+
+
+Simulator(newParam = data.frame(tt_flower_to_maturity=op_sce$par[1],
+                                tt_emerg_to_endjuv=op_sce$par[2],
+                                tt_flower_to_start_grain= op_sce$par[3]),
+          GPs) %>%
+  mutate(Date=as.Date(Date))%>%
+  ggplot(aes(Date, Sims))+
+  geom_point()+
+  geom_line()+
+  geom_pointrange(aes(ymin=LL, ymax=UL, x=Date, y=Mean), data=LAI_Obs)
+```
+
 
 ### Using Bayesian optimization to find the most optimum parameters
 

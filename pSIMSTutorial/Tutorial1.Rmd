@@ -14,6 +14,8 @@ output:
 ---
 In this tutorial, I will be using `pSIMSSiteMaker` and `pSIMCampaignManager` packages to first create a ncdf campaign file and then use the newly created campaign file to create a whole pSIMS simulation for a specific site.
 
+![Caption for the picture.](Dokoolab_SDA_scheme.png)
+
 Before using these packages, I need to mention that `pSIMCampaignManager` depends on two packages of `JBTools` and `ncdf.tools` which both are unfortunately off the CRAN, however you can the following link to find the latests version : [Link to packages](https://github.com/AgronomicForecastingLab/pSIMS_Campaign_Manager/tree/master/inst)  and manually install them.
 
 ```{r setup, include=FALSE}
@@ -319,7 +321,7 @@ This package relies on a series of pSIMS file templates for `params`, `campaign.
 
 1) User can edit these two files by providing a list of items that need to be changed in these files using `camp_list` and `param_list ` argumnet like the example below for `camp_list`. In this example, user asks to change the planting depth to `35` and the rest of the variables will be set using the defult values. Defualt values can be seen and checked using `Read_Campaign_template()` and `Read_param_template()`. `Read_Campaign_template()` and `Read_param_template()` reads those templates as R lists and each element in the list can be accessed and modified using usual R commands.
 
-2) The second approach start with reading the templates as it was mentioned before and user can directly change any of the values. Then the modified obj need to be passed to the `pSIMS_Site_Make` function using `Param_template_Obj` and `Campaign_json_Obj` arguments. Below we show an example of this method for `Param_template_Obj`.
+2) The second approach start with reading the templates as it was mentioned before and user can directly change any of the values. Then the modified obj need to be passed to the `pSIMS_Site_Make` function using `Param_template_Obj` and `Campaign_json_Obj` arguments. Below we show an example of this method for `Param_template_Obj`. We can use this link for finding the right delta : https://www.nhc.noaa.gov/gccalc.shtml
 
 `pSIMS_Site_Make` uses the lat/lon provided as arguments and maps them to the pSIMS girdding system. Then using the information provided in the `Bash_control` argument, it creates a bash script for running pSIMS inside a singularity container. 
 
